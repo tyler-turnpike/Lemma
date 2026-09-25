@@ -8,15 +8,15 @@ Lemma stops coding agents from paying to rediscover solved integration work.
 
 1. Show a TypeScript MCP fixture and ask the agent to add x402 on Arbitrum Sepolia.
 2. The agent calls `lemma_preview` before coding.
-3. Show the typed match, supporting fixture, price, expected saving, limitations, and warranty.
+3. Show the typed match, supporting fixture, price, expected saving, limitations, and warranty. The dashboard's Catalog view shows the release, and its Overview calculator shows why the price is allowed.
 4. The bridge checks its local cap and makes the x402 payment.
 5. Open the settlement transaction and signed resolution.
 6. Preview and apply the delivered patch.
 7. Run the acceptance recipe and publish the Adoption Receipt.
-8. Show the activated warranty and successful outcome on the dashboard.
+8. Show the activated warranty and successful outcome on the dashboard's resolution page (`#/resolutions/<id>`).
 9. Switch to an incompatible fixture and show a free no-match with zero payment.
 10. Show a prepared failure fixture and the provider-bond refund credit.
-11. End with the frozen control and treatment benchmark.
+11. End with the frozen control and treatment benchmark on the dashboard's Evidence view.
 
 ## Claims to make
 

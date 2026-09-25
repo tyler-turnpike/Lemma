@@ -84,6 +84,12 @@ The initial scaffold does not require environment variables for compilation or t
 - `npm run contracts:build`: Build the isolated Foundry package.
 - `npm run contracts:test`: Run Foundry tests.
 
+## Dashboard
+
+The server serves the dashboard at its root. After `npm run build`, run `node apps/server/dist/main.js`: with no environment it uses an in-memory store and serves the dashboard at `http://localhost:3000`. For hot reload, keep the server running and start `npm run dev:web`, which proxies `/api` to it.
+
+The dashboard explains the product, lists the catalog with its benchmark evidence, recomputes the pricing rule, looks up resolutions, ranks unmet demand, and shows how to connect an agent. It is read-only and holds no keys. See [apps/web/README.md](apps/web/README.md).
+
 ## Environment setup
 
 Copy `.env.example` to `.env` locally and fill only the roles needed for the component you are running. Never commit `.env`.

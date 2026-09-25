@@ -10,14 +10,23 @@ The server serves the built dashboard at `/` (see the server README). Views are 
 
 | Fragment | View | Read model |
 | --- | --- | --- |
-| `#/` | Product overview, setup (MCP configuration and the Lemma rule) and what to trust | none (static) |
-| `#/catalog` | Every release: provenance, price, warranty, and per profile the platform, evidence label, whether it can be sold and why not, the all-in reduction at the list price, and the highest price that keeps the benchmark target | `CatalogView` |
-| `#/evidence` | Every evidenced profile with its benchmark numbers | `CatalogView` |
+| `#/` | What Lemma sells, the four preview answers, live figures, how a purchase flows (each step marked built or in progress), what leaves the buyer's machine, the pricing rule with a calculator, and what to trust | `CatalogView`, `StatusView`; the calculator runs core `maxPriceFor` and `allInReductionBps` in the browser |
+| `#/catalog` | Every release: provenance, price, warranty, and per profile the platform, evidence label, whether it can be sold and why not, the all-in reduction at the list price, and the highest price that keeps the benchmark target. A capability without a release is listed with its free build answer | `CatalogView` |
+| `#/evidence` | The benchmark protocol's fixed parameters and every evidenced profile with its numbers and cost chart; an empty state while no frozen benchmark has run | `CatalogView` |
+| `#/resolutions` | Look up a resolution by its public id | none |
+| `#/resolutions/<id>` | One resolution's lifecycle (quote, payment, adoption receipt, warranty), terms and digests | `ResolutionView` |
 | `#/demand` | Unmet demand ranked by repositories: what to build next | `DemandView`, ranked by core `rankUnmetDemand` |
-| `#/resolutions/<id>` | One resolution's state, terms and adoption outcome | `ResolutionView` |
-| `#/status` | Network, catalog, purchases, provisional evidence, economics and storage | `StatusView` |
+| `#/status` | Service, purchases, economics, storage, network and catalog, and the settlement contracts | `StatusView` |
+| `#/setup` | Build the bridge, register it with the agent (the MCP configuration names this server's own origin), install the rule, the tools the agent sees, and the bridge's settings | none (static) |
 
-Every response is parsed with its core schema before anything is rendered; an answer that does not match is shown as an error. Warranty, voucher and contract panes belong to the payment work.
+Every response is parsed with its core schema before anything is rendered; an answer that does not match is shown as an error. Nothing is invented where the product is unfinished: warranty activation, the registry address and paid purchases are shown as in progress until the payment work adds them to the read models.
+
+## Design
+
+- One stylesheet, `src/styles.css`, built on color tokens. Light and dark follow `prefers-color-scheme`. Every text color pair clears 4.5:1 contrast, and the chart's three series pass the data-visualization palette checks (lightness, chroma, color-vision-deficiency separation) on both surfaces.
+- System fonts only, and icons and charts are inline SVG, so the page needs nothing from another origin.
+- Components live in `src/components/`. The cost chart (`CostChart.tsx`) compares building alone with buying a resolution on one axis. It measures its own width, so marks are drawn in pixels, and it always carries a values table, so no number needs hovering to read.
+- The pricing calculator (`src/calculator.ts`) is pure and uses core's pricing functions, so the page and `catalog:check` cannot disagree.
 
 ## Outside this boundary
 
@@ -30,7 +39,7 @@ Every response is parsed with its core schema before anything is rendered; an an
 ## Workspace dependencies
 
 - React and Vite for the client application.
-- `@lemma/core` for the read-model schemas, formatting and the unmet-demand ranking.
+- `@lemma/core` for the read-model schemas, amounts, pricing functions and the unmet-demand ranking.
 
 ## Environment variables
 
@@ -48,7 +57,7 @@ None in the build: the dashboard calls the API on its own origin. For `npm run d
 - Text is rendered through React escaping only; there is no raw HTML.
 - The server's CSP allows scripts, styles, images, fonts and API calls from this origin only, with no inline code, no eval, no framing and no forms. zod is set to jitless before any schema is built, so its eval probe never runs.
 - Nothing is kept in browser storage, and requests carry no credentials.
-- The only outbound links are GitHub repositories at a full commit, rebuilt from validated parts.
+- The only outbound links are GitHub repositories at a full commit and Arbitrum Sepolia explorer pages for an address, both rebuilt from validated parts.
 - No production source maps.
 - Testnet, provisional and unverified states are labeled wherever they appear.
 
