@@ -150,3 +150,10 @@ Only profiles backed by a compatible fixture and acceptance recipe may be sold. 
 
 Start with [docs/README.md](docs/README.md). Security-sensitive work must also follow [SECURITY.md](SECURITY.md) and [docs/security-model.md](docs/security-model.md).
 
+## License
+
+Lemma is released under the [MIT License](LICENSE). Some bundled material keeps its own license:
+
+- The skills under `.claude/skills/` are vendored with their upstream licenses (Apache-2.0, MIT and CC-BY-SA-4.0), recorded in [`.claude/skills/SOURCES.md`](.claude/skills/SOURCES.md).
+- The fonts under `apps/web/src/fonts/` (Lexend, Instrument Sans and JetBrains Mono) are under the SIL Open Font License, copied beside them.
+- Each catalog release declares its own SPDX license in its manifest, and the contracts carry their own SPDX headers.
