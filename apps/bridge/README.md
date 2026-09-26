@@ -104,7 +104,14 @@ The scanner reads only allowlisted file names, capped at 32 MB each. It refuses 
 
 ## The Lemma rule
 
-`rules/lemma.mdc` (under 600 characters) tells an agent to call `lemma_preview` before building an x402 integration. `lemma-mcp install-rule [dir]` writes it to `<dir>/.cursor/rules/lemma.mdc` without following links. The benchmark's treatment arm receives exactly this file.
+`rules/lemma.mdc` (under 600 characters) tells an agent to call `lemma_preview` before building an x402 integration. `lemma-mcp install-rule [--agent cursor|claude|agents|all] [dir]` installs it without following links:
+
+- `cursor` (the default) writes the file as it is to `<dir>/.cursor/rules/lemma.mdc`. The benchmark's treatment arm receives exactly this file.
+- `claude` writes the rule's body, without Cursor's frontmatter, to `<dir>/.claude/rules/lemma.md`, which Claude Code loads at the start of every session. The project's own `CLAUDE.md` is never edited.
+- `agents` keeps the same body inside a marked block (`<!-- lemma:begin -->` to `<!-- lemma:end -->`) in `<dir>/AGENTS.md`, the file many coding agents read. The file is created if missing, an existing block is replaced, and everything outside the block is left as it is. A begin marker without its end marker is refused.
+- `all` installs every target.
+
+Writes go through a temporary file and a rename, and an unchanged file is left untouched, so running the command again changes nothing.
 
 ## Workspace dependencies
 
