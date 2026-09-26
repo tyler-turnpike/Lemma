@@ -5,14 +5,15 @@
   "type": "module",
   "scripts": {
     "build": "tsc -b",
-    "bundle": "vite build",
+    "bundle": "vite build && node scripts/check-dist.mjs",
     "typecheck": "tsc -b",
-    "test": "vitest run",
+    "test": "vitest run --root ../.. apps/web/test",
     "dev": "vite"
   },
   "dependencies": {
     "@lemma/core": "0.1.0",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "zod": "4.6.5"
   }
 }
