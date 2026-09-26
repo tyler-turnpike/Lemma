@@ -10,21 +10,26 @@ The server serves the built dashboard at `/` (see the server README). Views are 
 
 | Fragment | View | Read model |
 | --- | --- | --- |
-| `#/` | What Lemma sells, the four preview answers, live figures, how a purchase flows (each step marked built or in progress), what leaves the buyer's machine, the pricing rule with a calculator, and what to trust | `CatalogView`, `StatusView`; the calculator runs core `maxPriceFor` and `allInReductionBps` in the browser |
-| `#/catalog` | Every release: provenance, price, warranty, and per profile the platform, evidence label, whether it can be sold and why not, the all-in reduction at the list price, and the highest price that keeps the benchmark target. A capability without a release is listed with its free build answer | `CatalogView` |
-| `#/evidence` | The benchmark protocol's fixed parameters and every evidenced profile with its numbers and cost chart; an empty state while no frozen benchmark has run | `CatalogView` |
+| `#/` | Home: one sentence and an example session, the three steps (check, buy, apply) with live or coming-soon chips, why it pays (the worked example's cost chart), why Arbitrum, live figures from this server, and the call to action | `CatalogView`, `StatusView` |
+| `#/how-it-works` | Home, scrolled to the three steps | as above |
+| `#/catalog` | One card per release: what it fits, price, warranty, source and expiry, with the release's digest and per-profile table under Details. A capability without a release is listed with its free build answer | `CatalogView` |
+| `#/evidence` | Proof: the two-arm benchmark and its fixed parameters, every evidenced profile with its numbers and cost chart (an empty state while no frozen benchmark has run), the pricing rule with a calculator that runs core `maxPriceFor` and `allInReductionBps` in the browser, and what to trust | `CatalogView` |
+| `#/what-to-trust` | Proof, scrolled to its limits | as above |
 | `#/resolutions` | Look up a resolution by its public id | none |
 | `#/resolutions/<id>` | One resolution's lifecycle (quote, payment, adoption receipt, warranty), terms and digests | `ResolutionView` |
 | `#/demand` | Unmet demand ranked by repositories: what to build next | `DemandView`, ranked by core `rankUnmetDemand` |
 | `#/status` | Service, purchases, economics, storage, network and catalog, and the settlement contracts | `StatusView` |
-| `#/setup` | Build the bridge, register it with the agent (the MCP configuration names this server's own origin), install the rule, the tools the agent sees, and the bridge's settings | none (static) |
+| `#/setup` | Get started: build the bridge, add it to Cursor, Claude Code or any other MCP agent (the configuration names this server's own origin), install the rule for that agent, and ask for an integration; the tools the agent sees, the bridge's settings and what it never does are collapsed below | none (static) |
+
+The header carries How it works, Catalog, Proof, a Testnet pill and the Get started button; the footer carries the explorer pages (Resolutions, Demand, Status, What to trust). On phones the header links sit behind a menu button.
 
 Every response is parsed with its core schema before anything is rendered; an answer that does not match is shown as an error. Nothing is invented where the product is unfinished: warranty activation, the registry address and paid purchases are shown as in progress until the payment work adds them to the read models.
 
 ## Design
 
-- One stylesheet, `src/styles.css`, built on color tokens. Light and dark follow `prefers-color-scheme`. Every text color pair clears 4.5:1 contrast, and the chart's three series pass the data-visualization palette checks (lightness, chroma, color-vision-deficiency separation) on both surfaces.
-- System fonts only, and icons and charts are inline SVG, so the page needs nothing from another origin.
+- One stylesheet, `src/styles.css`, built on color tokens taken from the logo: ink `#0E1518`, mint `#5FE7BB`, the link green `#0B7458` (mint in dark mode), and status colors. Light and dark follow `prefers-color-scheme`. Every text color pair clears 4.5:1 contrast, and the chart's three series (blue for model cost, brand green for Lemma's price, violet for chain cost) pass the data-visualization palette checks (lightness, chroma, color-vision-deficiency separation) on both surfaces.
+- The logo (`src/components/Logo.tsx`) is inline SVG redrawn from the logo file, colored through the stylesheet so it follows the scheme; `MarkMono` is its one-color form for empty states, the footer and the loading indicator. The favicon and touch icons live in `src/favicon.svg` and `src/icons/`, and the full brand files in [docs/brand](../../docs/brand/README.md).
+- Fonts are self-hosted from `src/fonts/` (Lexend for headings and the wordmark, Instrument Sans for text, JetBrains Mono for code; latin subsets, SIL Open Font License beside each file), because the server's CSP allows same-origin fonts only. Icons and charts are inline SVG, so the page needs nothing from another origin.
 - Components live in `src/components/`. The cost chart (`CostChart.tsx`) compares building alone with buying a resolution on one axis. It measures its own width, so marks are drawn in pixels, and it always carries a values table, so no number needs hovering to read.
 - The pricing calculator (`src/calculator.ts`) is pure and uses core's pricing functions, so the page and `catalog:check` cannot disagree.
 

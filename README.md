@@ -1,3 +1,8 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/brand/lemma-logo-dark.png">
+  <img src="docs/brand/lemma-logo.png" alt="Lemma" width="280">
+</picture>
+
 # Lemma
 
 Lemma is a compatibility and reuse layer for coding agents. It helps an agent decide whether verified prior integration work fits the repository in front of it, purchase the exact resolution through x402, and adopt it with evidence and bounded financial recourse.
@@ -88,7 +93,7 @@ The initial scaffold does not require environment variables for compilation or t
 
 The server serves the dashboard at its root. After `npm run build`, run `node apps/server/dist/main.js`: with no environment it uses an in-memory store and serves the dashboard at `http://localhost:3000`. For hot reload, keep the server running and start `npm run dev:web`, which proxies `/api` to it.
 
-The dashboard explains the product, lists the catalog with its benchmark evidence, recomputes the pricing rule, looks up resolutions, ranks unmet demand, and shows how to connect an agent. It is read-only and holds no keys. See [apps/web/README.md](apps/web/README.md).
+The dashboard explains the product on one page, lists the catalog, shows the benchmark proof and the pricing rule, looks up resolutions, ranks unmet demand, and shows how to connect Cursor, Claude Code or any other MCP agent. It is read-only and holds no keys. See [apps/web/README.md](apps/web/README.md). The logo and brand files live in [docs/brand](docs/brand/README.md).
 
 ## Environment setup
 
@@ -144,3 +149,4 @@ Only profiles backed by a compatible fixture and acceptance recipe may be sold. 
 ## Documentation
 
 Start with [docs/README.md](docs/README.md). Security-sensitive work must also follow [SECURITY.md](SECURITY.md) and [docs/security-model.md](docs/security-model.md).
+
