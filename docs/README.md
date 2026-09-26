@@ -8,7 +8,7 @@ These documents keep product, economic, security, evaluation, and deployment dec
 - [security-model.md](security-model.md): Assets, actors, threats, controls, and accepted MVP trust.
 - [benchmark-protocol.md](benchmark-protocol.md): Frozen control and treatment experiment.
 - [deployment.md](deployment.md): Arbitrum Sepolia, Railway, Postgres, keys, and release checks.
-- [arbitrum.md](arbitrum.md): Why Lemma runs on Arbitrum, what is built, and the integration options for the buildathon.
+- [arbitrum.md](arbitrum.md): Why Lemma runs on Arbitrum, what is built, the integration options for the buildathon, and what past winners and other entries built.
 - [demo-script.md](demo-script.md): Submission narrative and live demo sequence.
 
 When implementation changes a public interface or assumption, update the owning component README and the relevant document here in the same change.
