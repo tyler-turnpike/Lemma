@@ -1,3 +1,8 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/brand/lemma-logo-dark.png">
+  <img src="docs/brand/lemma-logo.png" alt="Lemma" width="280">
+</picture>
+
 # Lemma
 
 Lemma is a compatibility and reuse layer for coding agents. It helps an agent decide whether verified prior integration work fits the repository in front of it, purchase the exact resolution through x402, and adopt it with evidence and bounded financial recourse.
@@ -34,7 +39,7 @@ The buyer is not paying for ownership of open-source code. The buyer pays for ve
 - `apps/web` will present releases, resolutions, warranties, receipts, and benchmark evidence.
 - `packages/core` will own schemas, canonical hashing, identifiers, and shared policies.
 - `packages/catalog` will own curated Capability Release manifests and compatibility fixtures.
-- `packages/benchmark` will run the frozen control and treatment experiment through the Codex SDK.
+- `packages/benchmark` will run the frozen control and treatment experiment through the Cursor agent SDK (`@cursor/sdk`).
 - `contracts` will contain the Arbitrum Sepolia warranty registry.
 - `docs` records the decisions that must remain consistent across those components.
 - `ops` contains the container and Railway deployment scaffold.
@@ -84,11 +89,17 @@ The initial scaffold does not require environment variables for compilation or t
 - `npm run contracts:build`: Build the isolated Foundry package.
 - `npm run contracts:test`: Run Foundry tests.
 
+## Dashboard
+
+The server serves the dashboard at its root. After `npm run build`, run `node apps/server/dist/main.js`: with no environment it uses an in-memory store and serves the dashboard at `http://localhost:3000`. For hot reload, keep the server running and start `npm run dev:web`, which proxies `/api` to it.
+
+The dashboard explains the product on one page, lists the catalog, shows the benchmark proof and the pricing rule, looks up resolutions, ranks unmet demand, and shows how to connect Cursor, Claude Code or any other MCP agent. It is read-only and holds no keys. See [apps/web/README.md](apps/web/README.md). The logo and brand files live in [docs/brand](docs/brand/README.md).
+
 ## Environment setup
 
 Copy `.env.example` to `.env` locally and fill only the roles needed for the component you are running. Never commit `.env`.
 
-The planned system uses separate buyer, provider, facilitator, evaluator, and deployer roles. A production deployment must not reuse one private key across those roles. Browser code must never receive private keys, database credentials, RPC secrets, or the Codex SDK key.
+The planned system uses separate buyer, provider, facilitator, evaluator, and deployer roles. A production deployment must not reuse one private key across those roles. Browser code must never receive private keys, database credentials, RPC secrets, or the Cursor SDK key.
 
 Local Postgres can be started from `compose.yaml`. The included username and password are public local-development defaults and must not be used outside a developer machine.
 
@@ -101,7 +112,7 @@ The hackathon MVP will include:
 - A local MCP bridge with code-enforced spending limits.
 - A self-hosted x402 facilitator for Arbitrum Sepolia.
 - USDC resolution payments and a bonded warranty contract.
-- A dashboard and a paired Codex SDK benchmark.
+- A dashboard and a paired benchmark run through the Cursor agent SDK.
 
 It will not include:
 
@@ -138,3 +149,11 @@ Only profiles backed by a compatible fixture and acceptance recipe may be sold. 
 ## Documentation
 
 Start with [docs/README.md](docs/README.md). Security-sensitive work must also follow [SECURITY.md](SECURITY.md) and [docs/security-model.md](docs/security-model.md).
+
+## License
+
+Lemma is released under the [MIT License](LICENSE). Some bundled material keeps its own license:
+
+- The skills under `.claude/skills/` are vendored with their upstream licenses (Apache-2.0, MIT and CC-BY-SA-4.0), recorded in [`.claude/skills/SOURCES.md`](.claude/skills/SOURCES.md).
+- The fonts under `apps/web/src/fonts/` (Lexend, Instrument Sans and JetBrains Mono) are under the SIL Open Font License, copied beside them.
+- Each catalog release declares its own SPDX license in its manifest, and the contracts carry their own SPDX headers.

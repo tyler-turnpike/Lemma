@@ -26,7 +26,7 @@ The Arbitrum Sepolia contract holds provider bonds and records activated warrant
 
 ### Dashboard
 
-The dashboard explains releases, payments, warranties, outcomes, and benchmarks. It has no signing authority.
+The dashboard explains releases, payments, warranties, outcomes, and benchmarks. It has no signing authority. The server serves it from the same origin as its read API, so the page's CSP allows nothing but that origin, and every view renders a core read model (`packages/core/src/read.ts`) that the page validates before showing it. Views are addressed by URL fragment: overview and setup, catalog, benchmark evidence, unmet demand (what to build next), resolution detail and status.
 
 ## Trust boundaries
 
@@ -50,16 +50,43 @@ The dashboard explains releases, payments, warranties, outcomes, and benchmarks.
 9. The bridge previews or applies the patch and runs the acceptance recipe.
 10. The buyer signs an Adoption Receipt. The evaluator may finalize an onchain outcome.
 
+## Hosted MCP endpoint
+
+The server's MCP endpoint is stateless Streamable HTTP with JSON responses. Every request builds a new MCP server and transport, because the SDK refuses to reuse a stateless transport. `GET` and `DELETE` return 405, so no idle SSE stream is held. Each request carries one JSON-RPC message; batches are refused, so a request costs one rate-limit token. The endpoint itself keeps no session, but offers and rate limits live in one process until they move to shared storage, so the MVP runs one replica.
+
+The bridge is the only intended client. It calls `lemma_preview` with a typed task and a profile that holds only the dependencies in the catalog's published interest set, and it calls `lemma_recover_resolution` on its own at startup and after a lost paid response, and hands out no new offer for a release whose purchase is pending or stored. Agents never see these server tools directly: the bridge exposes its own small, text-only tools.
+
+In steady state a preview costs the bridge one request. The interest set is revalidated only when a preview reports a different catalog digest, base probes are cached per release, and one MCP session is reused.
+
+## Schemas
+
+Every component imports its data shapes from `@lemma/core` (see [packages/core/README.md](../packages/core/README.md)), and no application redefines them. Content objects (profiles, tasks, releases, catalog snapshots, patch bundles) are identified by `keccak256` over the RFC 8785 canonical JSON of `{ kind, value }`. A preview id is random. A resolution id is derived from the preview id and the buyer, so a recovered purchase names the same resolution. USDC amounts travel as atomic-unit integer strings, and payment terms use x402 v2's `PaymentRequirements` fields. Any other encoder, including the contract tests, checks itself against the shared vectors in `packages/core/test/vectors/digests.json`.
+
 ## Persistence
 
-Postgres will store previews, resolution preparation, settlement receipts, signed vouchers, adoption receipts, and indexer cursors. Catalog assets remain version-controlled. Chain events are projected idempotently by chain ID, transaction hash, and log index.
+Postgres stores:
+
+- immutable copies of every served release and bundle
+- catalog snapshots
+- offer-bearing previews
+- resolution preparation and settlement state
+- adoption receipts
+- daily demand counts
+
+Later it will also store signed vouchers and indexer cursors. Catalog assets remain version-controlled, and the database copies are keyed by digest, so a redeploy never strands an offer or a recovery. Chain events are projected idempotently by chain ID, transaction hash, and log index.
+
+The paid path meets the payment work at `ResolutionService` (`apps/server/src/service.ts`):
+
+- `prepare` writes one row per resolution with a single conditional insert. A duplicate payment is answered with `IN_FLIGHT` or `ALREADY_SETTLED`, and an authorization already backing another resolution with `PAYMENT_REUSED`; the paid tool returns `isError`, so x402 cancels that settlement.
+- `commit` records settlement for the authorization that settled and never throws.
+- Unsettled rows are listed for the settlement reconciler, which expires a row by the nonce it checked.
 
 ## Failure behavior
 
 - No match means no payment offer.
 - Local budget failure means no payment signature.
 - Settlement uncertainty enters reconciliation, not an immediate retry.
-- Lost paid responses are recovered by resolution ID.
+- Lost paid responses are recovered by preview ID and buyer, which derive the resolution ID. The preview ID is the bearer secret: only the bridge that asked for the preview receives it, and it is never published or logged. A resolution ID can be shown publicly without exposing the paid payload.
 - Patch drift stops application before mutation.
 - Missing evaluator confirmation leaves the warranty active until its claim deadline.
 - Expiry releases unresolved bond without claiming software success.
