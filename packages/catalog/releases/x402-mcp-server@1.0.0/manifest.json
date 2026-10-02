@@ -1,0 +1,107 @@
+{
+  "schemaVersion": "1",
+  "id": "x402-mcp-server@1.0.0",
+  "name": "x402-mcp-server",
+  "version": "1.0.0",
+  "title": "x402 payment gating for a TypeScript MCP server",
+  "summary": "Adds per-call x402 payment gating (exact scheme, USDC on Arbitrum Sepolia, chain 421614) to tools of a TypeScript MCP server built on @modelcontextprotocol/sdk McpServer.registerTool, using @x402/mcp createPaymentWrapper with an x402ResourceServer and a configurable facilitator.",
+  "taskKind": "x402-paywall-mcp-server",
+  "network": "arbitrum-sepolia",
+  "supportedProfile": {
+    "languages": [
+      "typescript"
+    ],
+    "moduleSystems": [
+      "esm"
+    ],
+    "packageManagers": [
+      "npm",
+      "pnpm"
+    ],
+    "testRunners": [
+      "vitest"
+    ],
+    "requireLockfile": false,
+    "requiredFrameworks": [
+      "mcpSdk"
+    ],
+    "forbiddenFrameworks": [
+      "x402"
+    ],
+    "exact": {
+      "@modelcontextprotocol/sdk": "1.30.1",
+      "zod": "4.6.5"
+    },
+    "boundary": {
+      "@modelcontextprotocol/sdk": ">=1.25.0 <2.0.0",
+      "zod": ">=4.0.0 <5.0.0"
+    }
+  },
+  "provenance": {
+    "upstreamRepo": "https://github.com/x402-foundation/x402",
+    "commit": "71eb9a55e081e7b81ba3046d0bd17c3eb9c7bf81",
+    "spdxLicense": "Apache-2.0",
+    "attribution": "x402 Foundation, x402 TypeScript SDK (@x402/core, @x402/evm, @x402/mcp 2.27.0; tag npm-@x402/mcp@v2.27.0, formerly coinbase/x402). Licensed under Apache-2.0.",
+    "modifications": "Wraps the upstream createPaymentWrapper/x402ResourceServer/ExactEvmScheme server APIs in a lazily initialised paywall module pinned to Arbitrum Sepolia USDC, adds environment configuration and input validation, wires it into the server's premium tool, and adds an offline acceptance test with an in-process facilitator."
+  },
+  "patch": {
+    "operations": [
+      {
+        "op": "create",
+        "path": "src/lemma/x402-paywall.ts"
+      },
+      {
+        "op": "modify",
+        "path": "src/server.ts",
+        "baseSha256": "2e3997cbcf63768c2bac5665ba68da9d33c71c32e4232777599b0d4535b11462"
+      },
+      {
+        "op": "create",
+        "path": "test/lemma-x402-paywall.test.ts"
+      }
+    ],
+    "dependencyAdditions": {
+      "dependencies": {
+        "@x402/core": "2.27.0",
+        "@x402/evm": "2.27.0",
+        "@x402/mcp": "2.27.0"
+      },
+      "devDependencies": {
+        "viem": "2.56.8"
+      }
+    }
+  },
+  "payloadDigest": "0x9c6772df3b28d9606a710f43bd0b99d4cf6bca19cb34d61c9d91ba170864bb52",
+  "acceptance": {
+    "argv": [
+      [
+        "npx",
+        "--no",
+        "vitest",
+        "run",
+        "test/lemma-x402-paywall.test.ts"
+      ]
+    ],
+    "timeoutMs": 120000,
+    "env": [
+      "CI"
+    ]
+  },
+  "priceAtomic": "120000",
+  "bondAtomic": "120000",
+  "claimWindowSeconds": 259200,
+  "expiresAt": "2027-04-01T00:00:00Z",
+  "evidence": {
+    "status": "provisional",
+    "benchmarkVersion": null,
+    "expectedSavingAtomic": null,
+    "expectedTokenSaving": null
+  },
+  "limitations": [
+    "Testnet only: Arbitrum Sepolia USDC, exact scheme, x402 protocol v2.",
+    "Paid tools must declare an inputSchema; the MCP SDK passes request metadata only to schema-bearing tools.",
+    "The modify operation requires src/server.ts to match the reviewed base byte for byte; drift stops application.",
+    "Production use requires X402_FACILITATOR_URL and X402_PAY_TO; settlement depends on the configured facilitator.",
+    "Savings are not yet benchmarked; evidence is provisional."
+  ]
+}

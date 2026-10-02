@@ -5,8 +5,18 @@
     "outDir": "dist",
     "tsBuildInfoFile": "dist/.tsbuildinfo"
   },
-  "include": ["src"],
+  "include": [
+    "src"
+  ],
   "references": [
-    { "path": "../core" }
+    {
+      "path": "../core"
+    }
+  ],
+  "exclude": [
+    "fixtures",
+    "releases",
+    "scripts",
+    "test"
   ]
 }

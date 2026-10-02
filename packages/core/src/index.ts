@@ -1,11 +1,20 @@
-export const LEMMA_SCHEMA_VERSION = "1" as const;
+// Browser-safe public surface of @lemma/core. Node-only helpers live in "@lemma/core/node".
+export * from "./constants.js";
+export * from "./usdc.js";
+export * from "./canonical.js";
+export * from "./semver.js";
+export * from "./paths.js";
+export * from "./schemas.js";
+export * from "./policy.js";
+export * from "./eip712.js";
+export * from "./redact.js";
+export * from "./profile.js";
+export * from "./bundle.js";
 
-export const LEMMA_DECISIONS = ["reuse", "adapt", "build", "decline"] as const;
-
-export type LemmaDecision = (typeof LEMMA_DECISIONS)[number];
+import { LEMMA_SCHEMA_VERSION } from "./constants.js";
 
 export const CORE_COMPONENT = {
   name: "@lemma/core",
-  status: "scaffold",
+  status: "implemented",
   schemaVersion: LEMMA_SCHEMA_VERSION,
 } as const;

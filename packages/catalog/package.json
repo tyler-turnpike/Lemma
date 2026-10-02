@@ -14,7 +14,8 @@
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc -b",
-    "test": "vitest run"
+    "test": "vitest run",
+    "seal": "tsx scripts/seal.ts"
   },
   "dependencies": {
     "@lemma/core": "0.1.0",

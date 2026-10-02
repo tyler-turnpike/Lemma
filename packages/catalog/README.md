@@ -23,9 +23,18 @@ The catalog is curated during the MVP. Publishing a file is not enough to create
 - Buyer-specific repository content.
 - Runtime warranty adjudication.
 
-## Planned public interface
+## Public interface (status: two provisional releases)
 
-The package will load validated manifests, enumerate releases, retrieve payloads by digest, and expose fixture metadata to the resolver and benchmark. It currently exports scaffold metadata with zero publishable releases.
+`loadCatalog()` validates every manifest with the core schemas, rebuilds each patch bundle from `releases/<id>/payload/`, rejects undeclared payload files and symlinks, and fails closed unless the computed bundle digest equals the manifest `payloadDigest`. The returned catalog exposes `listReleases()`, `getRelease(id | releaseId)`, `getBundle(id)`, `listFixtures()`, `fixtureDir(id)` and `fixtureProfile(id)`.
+
+Releases:
+
+- `x402-mcp-server@1.0.0`: x402 payment gating (USDC on Arbitrum Sepolia) for a TypeScript MCP server.
+- `x402-mcp-client@1.0.0`: an x402-paying MCP client with per-call, total-budget and recipient limits.
+
+Both use the upstream x402 TypeScript SDK 2.27.0 (`x402-foundation/x402` at commit `71eb9a55e081e7b81ba3046d0bd17c3eb9c7bf81`, Apache-2.0). They are priced at 0.12 USDC with an equal bond. Their evidence is `provisional` because no benchmark has been run yet, so the resolver previews them but does not mark them purchasable unless the testnet override is set.
+
+After editing a payload or an exact fixture, run `npm run seal -w @lemma/catalog` to recompute `baseSha256` and `payloadDigest`, and review the diff. `test/fixtures.e2e.test.ts` copies each positive fixture to a temp workspace, shows that the release acceptance test fails before the patch, applies the bundle, and checks that the acceptance test passes afterwards.
 
 ## Workspace dependencies
 

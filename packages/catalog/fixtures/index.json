@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "1",
+  "note": "Fixtures run against the dependencies installed at the repository root (Node resolves upward). Boundary fixtures declare different but supported versions; at runtime they execute against the root-installed versions, so they prove profile-level matching and patch application, not behaviour under the older versions.",
+  "fixtures": [
+    { "id": "mcp-server-exact", "release": "x402-mcp-server@1.0.0", "role": "exact", "task": "x402-paywall-mcp-server", "expectedDecision": "reuse", "acceptance": "pass-after-patch" },
+    { "id": "mcp-server-boundary", "release": "x402-mcp-server@1.0.0", "role": "boundary", "task": "x402-paywall-mcp-server", "expectedDecision": "adapt", "acceptance": "pass-after-patch" },
+    { "id": "mcp-server-commonjs", "release": "x402-mcp-server@1.0.0", "role": "near-match", "task": "x402-paywall-mcp-server", "expectedDecision": "build", "acceptance": "none" },
+    { "id": "express-no-mcp", "release": "x402-mcp-server@1.0.0", "role": "negative", "task": "x402-paywall-mcp-server", "expectedDecision": "decline", "acceptance": "none" },
+    { "id": "python-service", "release": "x402-mcp-server@1.0.0", "role": "negative", "task": "x402-paywall-mcp-server", "expectedDecision": "decline", "acceptance": "none", "nonNode": { "language": "python", "packageManager": "pip" } },
+    { "id": "mcp-client-exact", "release": "x402-mcp-client@1.0.0", "role": "exact", "task": "x402-paying-mcp-client", "expectedDecision": "reuse", "acceptance": "pass-after-patch" },
+    { "id": "mcp-client-boundary", "release": "x402-mcp-client@1.0.0", "role": "boundary", "task": "x402-paying-mcp-client", "expectedDecision": "adapt", "acceptance": "pass-after-patch" },
+    { "id": "express-no-mcp", "release": "x402-mcp-client@1.0.0", "role": "negative", "task": "x402-paying-mcp-client", "expectedDecision": "decline", "acceptance": "none" },
+    { "id": "python-service", "release": "x402-mcp-client@1.0.0", "role": "negative", "task": "x402-paying-mcp-client", "expectedDecision": "decline", "acceptance": "none", "nonNode": { "language": "python", "packageManager": "pip" } }
+  ]
+}

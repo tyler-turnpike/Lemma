@@ -16,14 +16,29 @@ Core defines the shared language that prevents the server, bridge, dashboard, be
 
 - Network requests.
 - Database access.
-- Filesystem scanning.
+- Filesystem scanning (the `node` subpath only applies already-verified bundles and runs recipes).
 - Wallet signing.
 - Matching against a concrete catalog.
 - User-interface rendering.
 
-## Planned public interface
+## Public interface (status: implemented)
 
-The package will export Zod schemas, inferred TypeScript types, canonical serialization, identifier derivation, amount parsing, and policy primitives. The current export contains only the initial schema version, decision vocabulary, and scaffold metadata.
+`@lemma/core` (browser-safe):
+
+- Strict Zod 4 schemas and inferred types: `RepositoryProfile`, `TaskRequest`, `CapabilityRelease`, `AcceptanceRecipe`, `PatchBundle`, `Preview`, `CompatibilityResolution`, `ResolutionVoucherMessage`, `OutcomeMessage`, `SignedResolutionVoucher`, `SignedOutcome`, `AdoptionReceipt`, `SignedAdoptionReceipt`. Unknown fields are rejected; every signed or paid object carries `schemaVersion: "1"`.
+- Canonical JSON (RFC 8785) and keccak digests: `canonicalJson`, `digest`, `bundleDigest`, `adoptionReceiptDigest`, `releaseIdFor`, `newResolutionId`.
+- USDC atomic amounts: `parseUsdc`, `formatUsdc`, `parseAtomic`.
+- Policy: `evaluateSpend` (pure, fail-closed) and `isPriceJustified` (price <= 30% of measured saving).
+- EIP-712: `lemmaDomain`, `LEMMA_EIP712_TYPES`, `voucherStructHash`, `voucherTypedDataHash`, `outcomeStructHash`, `outcomeTypedDataHash`, `voucherTypedData`, `outcomeTypedData`. Vectors in `test/vectors.json` are asserted against the Solidity values in `contracts/test/vectors.md`.
+- Profiles and paths: `profileFromPackageJson`, `nonNodeProfile`, `validateBundlePath`, minimal semver (`satisfiesRange`).
+- Redaction: `redact`, `redactString`, `secretsFromEnv`.
+
+`@lemma/core/node` (filesystem and process; Node only):
+
+- `applyBundle(dir, bundle, { dryRun })`: path confinement, symlink rejection, drift detection, structured `package.json` dependency merge, staged writes with rollback. Dry run by default.
+- `runAcceptance(dir, recipe)`: argv-only spawn without a shell, allowlisted environment, shared timeout, redacted capped output.
+
+Timestamps in JSON documents are ISO-8601 UTC strings; only the EIP-712 voucher uses uint64 seconds.
 
 ## Workspace dependencies
 

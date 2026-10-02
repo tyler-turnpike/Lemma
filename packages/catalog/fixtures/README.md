@@ -11,3 +11,7 @@ Each release should have:
 - Frozen expected test results.
 
 Fixtures must be public, synthetic, free of secrets, and small enough for repeated benchmark runs. Changes require a release version or an explicit evidence revision.
+
+## Current fixtures
+
+`index.json` lists each fixture, the release it exercises, its role (`exact`, `boundary`, `near-match` or `negative`) and the decision the resolver is expected to return. Fixtures resolve dependencies from the repository root `node_modules`. Boundary fixtures declare older versions that are still supported, but at runtime they execute against the versions installed at the root.
