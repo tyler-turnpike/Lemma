@@ -235,11 +235,14 @@ function rate(value: unknown): number | null {
   return n > 1 ? (n <= 100 ? n / 100 : null) : n;
 }
 
-/** Signed fraction for reductions; percentages (|n| > 1) are scaled down. Negative = treatment cost more. */
+/**
+ * Signed fractional reduction (0.31 = 31% lower). Negative means treatment cost more and can go
+ * below -1 (e.g. -2.883 = 288.3% higher). A reduction can never exceed 1 (100% lower).
+ */
 function signedRate(value: unknown): number | null {
   const n = numOrNull(value);
-  if (n === null || Math.abs(n) > 100) return null;
-  return Math.abs(n) > 1 ? n / 100 : n;
+  if (n === null || n > 1) return null;
+  return n;
 }
 
 function parseArm(value: unknown): BenchmarkArm {

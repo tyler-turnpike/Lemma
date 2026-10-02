@@ -291,6 +291,14 @@ describe("benchmark view", () => {
     expect(html).not.toContain("Meets 25% target");
   });
 
+  it("shows cost increases above 100% without rescaling them", () => {
+    const worse = structuredClone(publishedJson) as typeof publishedJson;
+    Object.assign(worse.aggregate, { verdict: "not-validated", reductions: { allInCost: -2.883, totalTokens: 0.749 } });
+    const html = renderToStaticMarkup(<BenchmarkView state={ready(parseBenchmarks(worse))} />);
+    expect(html).toContain("288% higher");
+    expect(html).toContain("75% lower");
+  });
+
   it("refuses to guess at an unrecognised aggregate", () => {
     const html = renderToStaticMarkup(<BenchmarkView state={ready(parseBenchmarks({ status: "published", aggregate: { foo: 1 } }))} />);
     expect(html).toContain(dashboard.benchmark.unrecognised);
