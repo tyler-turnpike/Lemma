@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@lemma/core": "0.1.0",
+    "@openai/codex-sdk": "0.160.0",
     "zod": "4.6.5"
   },
   "devDependencies": {
