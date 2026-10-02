@@ -29,7 +29,7 @@ Railway must use `Lemma/` as the service root so Docker copy paths resolve corre
 
 ## Environment variables
 
-Configure server-only variables from `.env.example` in Railway. Do not add `BUYER_PRIVATE_KEY` or `CURSOR_API_KEY` to the hosted product service unless a separately scoped benchmark job explicitly requires them.
+Configure server-only variables from `.env.example` in Railway. Do not add `BUYER_PRIVATE_KEY`, `BENCHMARK_BUYER_PRIVATE_KEY`, or `OPENAI_API_KEY` to the hosted product service. The benchmark runs locally through the OpenAI Codex SDK and needs none of them on the server. The server only serves the published aggregate file.
 
 ## Security constraints
 

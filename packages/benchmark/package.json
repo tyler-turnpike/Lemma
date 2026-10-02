@@ -15,14 +15,14 @@
     "build": "tsc -b",
     "typecheck": "tsc -b",
     "test": "vitest run",
-    "benchmark": "node dist/index.js"
+    "benchmark": "tsx src/main.ts"
   },
   "dependencies": {
+    "@lemma/catalog": "0.1.0",
     "@lemma/core": "0.1.0",
-    "@openai/codex-sdk": "0.160.0",
     "zod": "4.6.5"
   },
   "devDependencies": {
-    "@cursor/sdk": "1.0.32"
+    "@openai/codex-sdk": "0.160.0"
   }
 }

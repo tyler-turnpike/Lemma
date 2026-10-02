@@ -70,7 +70,7 @@ Before a public release:
 4. Review generated container contents for credentials and development artifacts.
 5. Verify deployed bytecode and record contract addresses and compiler settings.
 
-The scaffold currently pins `@cursor/sdk@1.0.32` for benchmarks. Its transitive `undici@5.29.0` has published denial-of-service and HTTP parsing advisories with no compatible upstream fix reported by npm. The SDK is a development-only dependency and is pruned from the production image. Recheck and upgrade it before running benchmarks against untrusted endpoints.
+The benchmark runs agents through `@openai/codex-sdk@0.160.0`, which spawns the `codex` CLI 0.160.0 binary from `node_modules`. Benchmark credentials never enter prompts, argv, or run records. `OPENAI_API_KEY` reaches the CLI only as `CODEX_API_KEY` in its environment. Shell commands inherit only core variables. The benchmark buyer key is handed to the `lemma-mcp` bridge through a 0600 file that the agent's sandbox cannot read, and that file is deleted after each run. Agent shells run under a Codex permission profile with no network, and reads are denied for the repository (except `node_modules`) and for the harness directory. Every record is redacted and then re-checked for known secrets before it is written. Acceptance tests run outside the agent sandbox with an allowlisted environment, so the benchmark must only run on a machine whose other credentials are not reachable from that environment. `@cursor/sdk@1.0.32`, with its transitive `undici@5.29.0` advisories, is no longer used by the harness. It remains a development-only dependency until it is uninstalled and is pruned from the production image.
 
 ## Reporting a vulnerability
 
