@@ -4,7 +4,7 @@
 
 Lemma lets a coding agent ask, before it writes any code, whether verified prior integration work already fits the repository in front of it. The preview is free. If a curated Capability Release fits, a local MCP bridge pays a few cents of USDC through x402, receives a provider-signed resolution (a patch bundle plus a pinned acceptance test), applies it, and runs the test. Every paid resolution reserves provider bond in a warranty registry on Arbitrum Sepolia. If an evaluator confirms that the adoption failed, the buyer is refunded from that bond. Lemma sells verified applicability and a ready integration path. It does not sell ownership of open-source code.
 
-> **Status: working testnet MVP.** The contract is deployed on Arbitrum Sepolia, both releases are registered and bonded, and the full product flow runs end to end on a fork with `npm run demo:fork`. The live testnet purchase run is in progress: [LIVE TX LINK]. The paired benchmark has not been run, so Lemma makes **no savings claim** yet. See [Status and limitations](#status-trust-assumptions-and-limitations).
+> **Status: working testnet MVP.** The contract is deployed on Arbitrum Sepolia, both releases are registered and bonded, and the full product flow runs end to end on a fork with `npm run demo:fork`. The full flow has also run live on Arbitrum Sepolia: [live x402 settlement](https://sepolia.arbiscan.io/tx/0x38e6c25b7b690e61d6de9a3ab533d7a08d71f2e0f62bdf26ae35d887d4a4f869), warranty activation, evaluator outcomes and a [bond refund](https://sepolia.arbiscan.io/tx/0x4ce2d7730211aa1e37604ed5adccc9803a35ec487379eed61c87887fed9bc1ce) (`npm run demo:testnet -- --yes`). The paired benchmark has not been run, so Lemma makes **no savings claim** yet. See [Status and limitations](#status-trust-assumptions-and-limitations).
 
 ## The problem
 
@@ -63,7 +63,7 @@ More detail: [docs/architecture.md](docs/architecture.md), [docs/interfaces.md](
 | Facilitator | [`0xeD09e99F20cEEd22BFff0D465f5A61d061b36e05`](https://sepolia.arbiscan.io/address/0xeD09e99F20cEEd22BFff0D465f5A61d061b36e05) |
 | Evaluator | [`0xd059A60Cf6Cc3fD83002389f2128cFB6F1c70a77`](https://sepolia.arbiscan.io/address/0xd059A60Cf6Cc3fD83002389f2128cFB6F1c70a77) |
 | Hosted server and dashboard | [LIVE URL] |
-| Live demo purchase | [LIVE TX LINK] |
+| Live demo purchase | [live x402 settlement](https://sepolia.arbiscan.io/tx/0x38e6c25b7b690e61d6de9a3ab533d7a08d71f2e0f62bdf26ae35d887d4a4f869) · [bond refund](https://sepolia.arbiscan.io/tx/0x4ce2d7730211aa1e37604ed5adccc9803a35ec487379eed61c87887fed9bc1ce) |
 
 Registered releases, each priced at 0.12 USDC with a 72-hour claim window and bonded with 1 USDC:
 
@@ -177,7 +177,7 @@ Tests need no environment variables. TypeScript and Solidity share fixed EIP-712
 
 **In progress**
 
-- Live testnet purchase run: [LIVE TX LINK].
+- Live testnet purchase run: [live x402 settlement](https://sepolia.arbiscan.io/tx/0x38e6c25b7b690e61d6de9a3ab533d7a08d71f2e0f62bdf26ae35d887d4a4f869).
 - Hosted deployment: [LIVE URL].
 - Full 20-run benchmark matrix (see below).
 

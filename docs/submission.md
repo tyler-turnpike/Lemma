@@ -9,7 +9,7 @@ Arbitrum Open House London online buildathon (HackQuest), Solidity track.
 | Pitch video | 5:00 hard limit. The script targets 2:00 or less |
 | Fundraising status | Not fundraising (confirmed by the team) |
 
-Before submitting, replace every placeholder: `[LIVE URL]`, `[LIVE TX LINK]`, `[BENCHMARK RESULT]`, `[DEMO VIDEO URL]`, `[PITCH VIDEO URL]`, `[TEAM LEADER GITHUB]`. If the live testnet run or the benchmark is not finished by the deadline, delete the sentence that holds the placeholder instead of guessing a value.
+Before submitting, replace every placeholder: `[LIVE URL]`, `[live x402 settlement](https://sepolia.arbiscan.io/tx/0x38e6c25b7b690e61d6de9a3ab533d7a08d71f2e0f62bdf26ae35d887d4a4f869)`, `[BENCHMARK RESULT]`, `[DEMO VIDEO URL]`, `[PITCH VIDEO URL]`, `[TEAM LEADER GITHUB]`. If the live testnet run or the benchmark is not finished by the deadline, delete the sentence that holds the placeholder instead of guessing a value.
 
 Each field below is ready to paste. Text inside the fenced blocks is the paste-ready version.
 
@@ -40,7 +40,7 @@ Before coding, the agent calls Lemma through a local MCP bridge (works with Code
 
 Why Arbitrum: per-resolution prices are cents, so settlement and warranty transactions have to cost far less than the thing being sold. x402 gives agents a standard way to pay. The registry adds the part x402 alone does not have, which is recourse after payment.
 
-Honest status: this is a working testnet MVP with one first-party provider and two curated releases. The registry is deployed and both releases are bonded. The full flow, including real x402 settlement, refund from bond, free no-match and recovery, passes end to end on an Arbitrum Sepolia fork. Live testnet run: [LIVE TX LINK]. The evaluator is a trusted team key, not an oracle. A paired Codex benchmark (control vs. Lemma, 20 runs) is built, and we make no savings claim until it has run: [BENCHMARK RESULT].
+Honest status: this is a working testnet MVP with one first-party provider and two curated releases. The registry is deployed and both releases are bonded. The full flow, including real x402 settlement, refund from bond, free no-match and recovery, passes end to end on an Arbitrum Sepolia fork. It has also run live on Arbitrum Sepolia: [live x402 settlement](https://sepolia.arbiscan.io/tx/0x38e6c25b7b690e61d6de9a3ab533d7a08d71f2e0f62bdf26ae35d887d4a4f869), plus a failed adoption refunded from the provider bond ([bond refund](https://sepolia.arbiscan.io/tx/0x4ce2d7730211aa1e37604ed5adccc9803a35ec487379eed61c87887fed9bc1ce)). The evaluator is a trusted team key, not an oracle. A paired Codex benchmark (control vs. Lemma, 20 runs) is built, and we make no savings claim until it has run: [BENCHMARK RESULT].
 ```
 
 (About 370 words.)
@@ -58,7 +58,7 @@ Honest status: this is a working testnet MVP with one first-party provider and t
 - 2 Oct 2026: Built the Codex SDK benchmark harness for a 20-run paired experiment. A smoke run passed acceptance.
 - 2 Oct 2026: Scripted the whole product flow end to end (npm run demo:fork): real x402 settlement on an Arbitrum Sepolia fork, refund from bond, free no-match, recovery without double payment, and expiry. Prepared testnet operations.
 - 2 Oct 2026: Deployed ResolutionWarrantyRegistry to Arbitrum Sepolia at 0x45Ae8799dF4C0878AD22CFe7040383F25f046d56. Registered both releases and bonded each with 1 USDC.
-- Current: 282 TypeScript tests and 73 Foundry tests passing. Live testnet purchase: [LIVE TX LINK]. Hosted dashboard: [LIVE URL].
+- Current: 282 TypeScript tests and 73 Foundry tests passing. Live testnet purchase: [live x402 settlement](https://sepolia.arbiscan.io/tx/0x38e6c25b7b690e61d6de9a3ab533d7a08d71f2e0f62bdf26ae35d887d4a4f869). Hosted dashboard: [LIVE URL].
 ```
 
 ## Tech stack
@@ -123,7 +123,7 @@ Repository: https://github.com/tyler-turnpike/Lemma
 
 ## Pre-submit checklist
 
-- [ ] `[LIVE URL]`, `[LIVE TX LINK]` and `[BENCHMARK RESULT]` are replaced or their sentences deleted, here and in README.md.
+- [ ] `[LIVE URL]`, `[live x402 settlement](https://sepolia.arbiscan.io/tx/0x38e6c25b7b690e61d6de9a3ab533d7a08d71f2e0f62bdf26ae35d887d4a4f869)` and `[BENCHMARK RESULT]` are replaced or their sentences deleted, here and in README.md.
 - [ ] Nothing says or implies: decentralized correctness oracle, marketplace, revenue, or proven savings.
 - [ ] The evaluator is described as a trusted team key wherever it appears.
 - [ ] The demo video shows the `PREPARED FAILURE` label and says out loud that the failure is staged.

@@ -7,7 +7,7 @@ Two videos for the HackQuest submission. The hard limit for each is 5:00.
 
 Narration runs at about 140 words per minute. Read it calmly. If a beat runs long, cut words rather than speeding up. Keep the claims inside [demo-script.md](demo-script.md), "Claims to avoid": no oracle, no marketplace, testnet is not revenue, receipts are not proof of savings, and the evaluator is a trusted team key.
 
-Placeholders to fill before recording: `[LIVE URL]`, `[LIVE TX LINK]`, `[RESOLUTION ID]`, `[BENCHMARK RESULT]`.
+Placeholders to fill before recording: `[LIVE URL]`, `[live x402 settlement](https://sepolia.arbiscan.io/tx/0x38e6c25b7b690e61d6de9a3ab533d7a08d71f2e0f62bdf26ae35d887d4a4f869)`, `0x7923e77a42bf135273f54eb029be6b207f53fb5ea2c0d19b2a1cbee37d429f8e`, `[BENCHMARK RESULT]`.
 
 ---
 
@@ -30,12 +30,12 @@ Placeholders to fill before recording: `[LIVE URL]`, `[LIVE TX LINK]`, `[RESOLUT
 4. Open these browser tabs in order:
    - `[LIVE URL]/catalog`
    - `[LIVE URL]/status`
-   - `[LIVE URL]/resolutions/[RESOLUTION ID]` (a resolution ID from the live run; skip it if there is no live run)
+   - `[LIVE URL]/resolutions/0x7923e77a42bf135273f54eb029be6b207f53fb5ea2c0d19b2a1cbee37d429f8e` (a resolution ID from the live run; skip it if there is no live run)
    - `[LIVE URL]/benchmark`
    - https://sepolia.arbiscan.io/address/0x45Ae8799dF4C0878AD22CFe7040383F25f046d56 (registry)
    - https://sepolia.arbiscan.io/tx/0xa015c0cc368327f674f4f0954816b6ccc6154a384d73c61ae41ab0105173cc42 (deploy)
    - https://sepolia.arbiscan.io/tx/0x0663aef4a43b91840a69bb11698b1253235cb6d14d060c830a92ff2ace9e72bb (a bond deposit for `x402-mcp-server@1.0.0`)
-   - `[LIVE TX LINK]` (the settlement tx from the live run, if there is one)
+   - `[live x402 settlement](https://sepolia.arbiscan.io/tx/0x38e6c25b7b690e61d6de9a3ab533d7a08d71f2e0f62bdf26ae35d887d4a4f869)` (the settlement tx from the live run, if there is one)
 
    If `[LIVE URL]` is not deployed, run the server locally with the registry environment and use `http://localhost:3000` instead. If that is not possible either, drop shots 2 and 11 and give their time to the terminal walkthrough.
 
