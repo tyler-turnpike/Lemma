@@ -16,14 +16,15 @@ export const REPETITIONS = 3;
  * Model selection (2026-10-02): `GET /v1/models` with the benchmark key listed gpt-5.4, gpt-5.5,
  * gpt-5.6-{sol,terra,luna} and others. Codex CLI 0.160.0 ships model metadata for gpt-5.5 and the
  * gpt-5.6 family but not for dated snapshots (it warns "Model metadata ... not found" and degrades),
- * so a dated snapshot cannot be used without degrading the agent. gpt-5.6-terra is the mid-priced
- * gpt-5.6 model with first-class Codex metadata. It is an alias, not a dated snapshot: the report
+ * so a dated snapshot cannot be used without degrading the agent. gpt-5.6-luna is the lowest-priced
+ * gpt-5.6 model with first-class Codex metadata, chosen to fit the available API budget (a terra
+ * smoke run cost about $0.38; luna list prices are one tenth of terra's). It is an alias, not a dated snapshot: the report
  * discloses that provider-side model updates during the experiment window are not controlled.
  */
 export const FROZEN_AGENT = {
   provider: "openai",
   runtime: "@openai/codex-sdk@0.160.0 (codex-cli 0.160.0)",
-  model: "gpt-5.6-terra",
+  model: "gpt-5.6-luna",
   modelReasoningEffort: "medium",
   /** Shell commands get no network in either arm; dependencies are pre-resolved from the repo. */
   shellNetworkAccess: false,

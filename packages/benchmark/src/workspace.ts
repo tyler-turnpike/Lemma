@@ -54,8 +54,8 @@ export function prepareWorkspace(task: BenchmarkTask, catalog: Catalog): Prepare
 
 export type Snapshot = Map<string, string>;
 
-/** Top-level scratch dirs excluded from change counts: Codex's sandbox TMPDIR (.tmp) holds vite/node caches. */
-const SCRATCH_DIRS = new Set([".tmp"]);
+/** Top-level scratch dirs excluded from change counts: Codex sandbox TMPDIR (.tmp) and vitest caches (.vitest-tmp). */
+const SCRATCH_DIRS = new Set([".tmp", ".vitest-tmp"]);
 
 /** path -> sha256 of every regular file, excluding node_modules, .git and top-level scratch dirs. */
 export function snapshot(dir: string): Snapshot {
