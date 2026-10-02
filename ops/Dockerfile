@@ -10,8 +10,9 @@ COPY packages ./packages
 COPY tsconfig.json tsconfig.base.json ./
 
 RUN npm ci
-# tsc -b for every workspace, then the Vite dashboard bundle (apps/web/dist).
-RUN npm run build
+# Compile only what the hosted service ships (server + its workspace deps, web), then bundle the
+# dashboard. The root build also covers scripts/ and the bridge, which the image does not include.
+RUN npx tsc -b apps/server apps/web && npm run bundle -w @lemma/web
 RUN test -f apps/web/dist/index.html && test -f apps/server/dist/index.js
 RUN npm prune --omit=dev
 # No production source maps or declaration maps in the image.
