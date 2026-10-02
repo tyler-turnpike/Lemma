@@ -1,0 +1,67 @@
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #0a0a0a;
+  --color-card: #111111;
+  --color-line: #262626;
+  --color-fg: #fafafa;
+  --color-muted: #8a8a8a;
+  --color-faint: #5c5c5c;
+  /* Signal colour is reserved for the product mock (success ticks, REUSE pill). */
+  --color-signal: #4ade80;
+
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, "SFMono-Regular", monospace;
+
+  --text-eyebrow: 2.25rem;
+  --text-eyebrow--line-height: 1.2;
+  --text-eyebrow--letter-spacing: -0.02em;
+  --text-display: 3.25rem;
+  --text-display--line-height: 1.15;
+  --text-display--letter-spacing: -0.025em;
+  --text-section: 1.75rem;
+  --text-section--line-height: 1.3;
+  --text-section--letter-spacing: -0.015em;
+  --text-lede: 1.375rem;
+  --text-lede--line-height: 1.5;
+}
+
+@layer base {
+  html {
+    background: var(--color-bg);
+    color-scheme: dark;
+  }
+
+  body {
+    background: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: var(--color-fg);
+    color: var(--color-bg);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-fg);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+}
+
+@utility container-page {
+  width: 100%;
+  max-width: 80rem;
+  margin-inline: auto;
+  padding-inline: 1rem;
+
+  @variant md {
+    padding-inline: 1.5rem;
+  }
+}
