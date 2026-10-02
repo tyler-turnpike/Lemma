@@ -9,7 +9,7 @@ Arbitrum Open House London online buildathon (HackQuest), Solidity track.
 | Pitch video | 5:00 hard limit. The script targets 2:00 or less |
 | Fundraising status | Not fundraising (confirmed by the team) |
 
-Before submitting, replace every placeholder: `[LIVE URL]`, `[live x402 settlement](https://sepolia.arbiscan.io/tx/0x38e6c25b7b690e61d6de9a3ab533d7a08d71f2e0f62bdf26ae35d887d4a4f869)`, `[BENCHMARK RESULT]`, `[DEMO VIDEO URL]`, `[PITCH VIDEO URL]`, `[TEAM LEADER GITHUB]`. If the live testnet run or the benchmark is not finished by the deadline, delete the sentence that holds the placeholder instead of guessing a value.
+Before submitting, replace every placeholder: `[LIVE URL]`, `[BENCHMARK RESULT]`, `[DEMO VIDEO URL]`, `[PITCH VIDEO URL]`, `[TEAM LEADER GITHUB]`. If the live testnet run or the benchmark is not finished by the deadline, delete the sentence that holds the placeholder instead of guessing a value.
 
 Each field below is ready to paste. Text inside the fenced blocks is the paste-ready version.
 
@@ -123,7 +123,7 @@ Repository: https://github.com/tyler-turnpike/Lemma
 
 ## Pre-submit checklist
 
-- [ ] `[LIVE URL]`, `[live x402 settlement](https://sepolia.arbiscan.io/tx/0x38e6c25b7b690e61d6de9a3ab533d7a08d71f2e0f62bdf26ae35d887d4a4f869)` and `[BENCHMARK RESULT]` are replaced or their sentences deleted, here and in README.md.
+- [ ] `[LIVE URL]` and `[BENCHMARK RESULT]` are replaced or their sentences deleted, here and in README.md.
 - [ ] Nothing says or implies: decentralized correctness oracle, marketplace, revenue, or proven savings.
 - [ ] The evaluator is described as a trusted team key wherever it appears.
 - [ ] The demo video shows the `PREPARED FAILURE` label and says out loud that the failure is staged.
