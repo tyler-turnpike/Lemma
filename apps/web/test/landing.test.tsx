@@ -22,8 +22,8 @@ describe("landing page", () => {
     expect(last?.kind === "ok" && html.includes(last.text)).toBe(true);
   });
 
-  it("labels testnet data and avoids unmeasured savings claims", () => {
+  it("labels testnet data and states the benchmark verdict honestly", () => {
     expect(html).toContain("Arbitrum Sepolia testnet");
-    expect(html).toContain("[pending benchmark]");
+    expect(html).toContain("cost not validated");
   });
 });

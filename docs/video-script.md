@@ -7,7 +7,7 @@ Two videos for the HackQuest submission. The hard limit for each is 5:00.
 
 Narration runs at about 140 words per minute. Read it calmly. If a beat runs long, cut words rather than speeding up. Keep the claims inside [demo-script.md](demo-script.md), "Claims to avoid": no oracle, no marketplace, testnet is not revenue, receipts are not proof of savings, and the evaluator is a trusted team key.
 
-Placeholders to fill before recording: `[BENCHMARK RESULT]`.
+All placeholders are filled.
 
 ---
 
@@ -53,7 +53,7 @@ Placeholders to fill before recording: `[BENCHMARK RESULT]`.
 | 2:35 to 2:55 | 8. No-match | Log `[9]`: `python-service` and `express-no-mcp` get `decline`, no price, buy refused, 0 USDC |
 | 2:55 to 3:25 | 9. Refund | Log `[10]`: the `PREPARED FAILURE` note is visible, failed receipt, evaluator `Failed`, buyer credit 0.12, `withdrawCredit`. Fork only: the dropped response is recovered with no second payment |
 | 3:25 to 3:35 | 10. Summary | Log `[summary]` balance table and `DEMO PASSED` |
-| 3:35 to 3:50 | 11. Status and benchmark | `/status` trust assumptions, then `/benchmark` "Not run yet" or `[BENCHMARK RESULT]` |
+| 3:35 to 3:50 | 11. Status and benchmark | `/status` trust assumptions, then `/benchmark` result (not validated: 74.9% fewer tokens, all-in cost 288% higher) |
 | 3:50 to 4:00 | 12. Close | README on GitHub with the deployment table |
 
 ### Narration (word for word, about 520 words)
@@ -100,13 +100,12 @@ Placeholders to fill before recording: `[BENCHMARK RESULT]`.
 
 **[11] 3:35 Status and benchmark**
 
-> The status page states our trust assumptions: testnet only, a trusted team evaluator, and first-party infrastructure. And we haven't claimed savings. The paired benchmark is built and will report whatever it measures.
+> The status page states our trust assumptions: testnet only, a trusted team evaluator, and first-party infrastructure. We also ran the paired benchmark: twenty runs, with and without Lemma. With Lemma the agent used about seventy-five percent fewer tokens, but at twelve cents a resolution on a very cheap model the total cost went up, so the target was missed and we don't claim savings.
 
 **[12] 3:50 Close**
 
 > That's Lemma: pay only when it fits, with recourse if it doesn't. Everything's open in the repo.
 
-If the benchmark has run by recording time, replace the last two sentences of [11] with one plain sentence that reads the result from `[BENCHMARK RESULT]`, for example "Across twenty runs, the Lemma arm used X percent fewer tokens," or "it did not meet the target." Do not round up.
 
 ---
 

@@ -54,7 +54,7 @@ export const decisionCard = {
   rows: [
     ["Match", "exact fixture · ts-mcp-hono"],
     ["Price", "0.12 USDC"],
-    ["Expected saving", "[pending benchmark]"],
+    ["Benchmark", "−75% tokens · cost not validated"],
     ["Warranty", "bonded · 72h claim"],
     ["Limits", "Node ≥ 22 · Hono 4.x"],
   ],

@@ -9,7 +9,7 @@ Arbitrum Open House London online buildathon (HackQuest), Solidity track.
 | Pitch video | 5:00 hard limit. The script targets 2:00 or less |
 | Fundraising status | Not fundraising (confirmed by the team) |
 
-Before submitting, replace every placeholder: `[BENCHMARK RESULT]`, `[DEMO VIDEO URL]`, `[PITCH VIDEO URL]`, `[TEAM LEADER GITHUB]`. If the live testnet run or the benchmark is not finished by the deadline, delete the sentence that holds the placeholder instead of guessing a value.
+Before submitting, replace every placeholder: `[DEMO VIDEO URL]`, `[PITCH VIDEO URL]`, `[TEAM LEADER GITHUB]`. If the live testnet run or the benchmark is not finished by the deadline, delete the sentence that holds the placeholder instead of guessing a value.
 
 Each field below is ready to paste. Text inside the fenced blocks is the paste-ready version.
 
@@ -40,7 +40,7 @@ Before coding, the agent calls Lemma through a local MCP bridge (works with Code
 
 Why Arbitrum: per-resolution prices are cents, so settlement and warranty transactions have to cost far less than the thing being sold. x402 gives agents a standard way to pay. The registry adds the part x402 alone does not have, which is recourse after payment.
 
-Honest status: this is a working testnet MVP with one first-party provider and two curated releases. The registry is deployed and both releases are bonded. The full flow, including real x402 settlement, refund from bond, free no-match and recovery, passes end to end on an Arbitrum Sepolia fork. It has also run live on Arbitrum Sepolia: [live x402 settlement](https://sepolia.arbiscan.io/tx/0x38e6c25b7b690e61d6de9a3ab533d7a08d71f2e0f62bdf26ae35d887d4a4f869), plus a failed adoption refunded from the provider bond ([bond refund](https://sepolia.arbiscan.io/tx/0x4ce2d7730211aa1e37604ed5adccc9803a35ec487379eed61c87887fed9bc1ce)). The evaluator is a trusted team key, not an oracle. A paired Codex benchmark (control vs. Lemma, 20 runs) is built, and we make no savings claim until it has run: [BENCHMARK RESULT].
+Honest status: this is a working testnet MVP with one first-party provider and two curated releases. The registry is deployed and both releases are bonded. The full flow, including real x402 settlement, refund from bond, free no-match and recovery, passes end to end on an Arbitrum Sepolia fork. It has also run live on Arbitrum Sepolia: [live x402 settlement](https://sepolia.arbiscan.io/tx/0x38e6c25b7b690e61d6de9a3ab533d7a08d71f2e0f62bdf26ae35d887d4a4f869), plus a failed adoption refunded from the provider bond ([bond refund](https://sepolia.arbiscan.io/tx/0x4ce2d7730211aa1e37604ed5adccc9803a35ec487379eed61c87887fed9bc1ce)). The evaluator is a trusted team key, not an oracle. We ran a frozen, paired Codex benchmark (20 runs): with Lemma, agents used 74.9% fewer tokens and finished faster with 9/9 vs 8/9 passes, but the 0.12 USDC price made all-in cost 288% higher on a very cheap model, so the 25% cost target was missed and we claim no savings. Pricing has to scale with the model cost it replaces.
 ```
 
 (About 370 words.)
@@ -123,7 +123,6 @@ Repository: https://github.com/tyler-turnpike/Lemma
 
 ## Pre-submit checklist
 
-- [ ] `[BENCHMARK RESULT]` are replaced or their sentences deleted, here and in README.md.
 - [ ] Nothing says or implies: decentralized correctness oracle, marketplace, revenue, or proven savings.
 - [ ] The evaluator is described as a trusted team key wherever it appears.
 - [ ] The demo video shows the `PREPARED FAILURE` label and says out loud that the failure is staged.

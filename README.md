@@ -4,7 +4,7 @@
 
 Lemma lets a coding agent ask, before it writes any code, whether verified prior integration work already fits the repository in front of it. The preview is free. If a curated Capability Release fits, a local MCP bridge pays a few cents of USDC through x402, receives a provider-signed resolution (a patch bundle plus a pinned acceptance test), applies it, and runs the test. Every paid resolution reserves provider bond in a warranty registry on Arbitrum Sepolia. If an evaluator confirms that the adoption failed, the buyer is refunded from that bond. Lemma sells verified applicability and a ready integration path. It does not sell ownership of open-source code.
 
-> **Status: working testnet MVP.** The contract is deployed on Arbitrum Sepolia, both releases are registered and bonded, and the full product flow runs end to end on a fork with `npm run demo:fork`. The full flow has also run live on Arbitrum Sepolia: [live x402 settlement](https://sepolia.arbiscan.io/tx/0x38e6c25b7b690e61d6de9a3ab533d7a08d71f2e0f62bdf26ae35d887d4a4f869), warranty activation, evaluator outcomes and a [bond refund](https://sepolia.arbiscan.io/tx/0x4ce2d7730211aa1e37604ed5adccc9803a35ec487379eed61c87887fed9bc1ce) (`npm run demo:testnet -- --yes`). The paired benchmark has not been run, so Lemma makes **no savings claim** yet. See [Status and limitations](#status-trust-assumptions-and-limitations).
+> **Status: working testnet MVP.** The contract is deployed on Arbitrum Sepolia, both releases are registered and bonded, and the full product flow runs end to end on a fork with `npm run demo:fork`. The full flow has also run live on Arbitrum Sepolia: [live x402 settlement](https://sepolia.arbiscan.io/tx/0x38e6c25b7b690e61d6de9a3ab533d7a08d71f2e0f62bdf26ae35d887d4a4f869), warranty activation, evaluator outcomes and a [bond refund](https://sepolia.arbiscan.io/tx/0x4ce2d7730211aa1e37604ed5adccc9803a35ec487379eed61c87887fed9bc1ce) (`npm run demo:testnet -- --yes`). The paired 20-run benchmark measured 74.9% fewer tokens but missed the all-in cost target, so Lemma makes **no savings claim**. See [Status and limitations](#status-trust-assumptions-and-limitations).
 
 ## The problem
 
@@ -205,9 +205,17 @@ Tests need no environment variables. TypeScript and Solidity share fixed EIP-712
 
 **Success criteria:** treatment median all-in cost and median total tokens are each at least 25 percent lower, no pass-rate regression on any task, and 0 USDC spent on the no-match task.
 
-**Result:** [BENCHMARK RESULT]
+**Result (2026-10-02, 20/20 runs, verdict: not validated).**
 
-The harness is built and a smoke run passed acceptance (about $0.03 of model usage). The full matrix has not been run. Until it has, Lemma claims no savings. If the target is missed, the report says "Not validated" and publishes the measured numbers anyway.
+| Matched tasks, medians | Control | Lemma |
+|---|---|---|
+| Total tokens | 963,971 | 242,443 (**74.9% fewer**) |
+| Raw model cost (estimate) | $0.0336 | $0.0115 (about 66% lower) |
+| All-in cost, incl. 0.12 USDC price | $0.0336 | $0.1306 (**288.3% higher**) |
+| Duration | 95.9 s | 42.4 s |
+| Acceptance pass rate | 8/9 | 9/9 |
+
+The no-match task spent 0 USDC in the Lemma arm. **The pre-registered 25% all-in cost target was missed, so Lemma claims no savings.** On a model this cheap (about $0.03 per control run), the fixed 0.12 USDC price is about four times the model cost it saves; the price would need to be under roughly $0.022 to break even at these numbers. Token and time reductions are real measurements, not a cost claim. Disclosed limitations: one Lemma run's purchase never settled (no USDC moved) and the agent solved the task unaided; inside the sandbox, vitest often could not create its temp directory, which likely inflated control-arm tokens. Aggregate: [`packages/benchmark/published/aggregate.json`](packages/benchmark/published/aggregate.json), also on the [/benchmark](https://lemma-production-8383.up.railway.app/benchmark) page.
 
 ```bash
 npm run benchmark -- --plan            # print the frozen 20-run matrix (no API calls)
