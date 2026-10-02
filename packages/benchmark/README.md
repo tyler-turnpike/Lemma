@@ -19,7 +19,7 @@ The benchmark tests the core claim: a paid Compatibility Resolution should reduc
 - Mixing old runner results into a paired comparison.
 - Using benchmark outcomes to bypass compatibility rules.
 
-## Experiment (status: harness implemented, final matrix not yet run)
+## Experiment (status: frozen 20-run matrix completed 2026-10-02; verdict: not validated)
 
 - Three matched tasks: x402 paywall on the exact MCP server fixture, x402-paying client on the exact client fixture, and x402 paywall on the boundary server fixture.
 - Control and Lemma treatment arms.

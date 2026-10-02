@@ -15,8 +15,6 @@ coverage/
 
 packages/benchmark/runs/*
 !packages/benchmark/runs/.gitkeep
-# Benchmark aggregate: published only from a real, frozen run (npm run benchmark -- --report)
-packages/benchmark/published/
 
 contracts/cache/
 contracts/out/

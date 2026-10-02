@@ -8,13 +8,13 @@ import { formatPlan, planMatrix, type PlannedRun } from "./matrix.js";
 import { publishedAggregatePath, repoRoot, runsDir } from "./paths.js";
 import { buildAggregate, readRecords } from "./report.js";
 import { executeRun, serverPreflight, treatmentPreflight } from "./runner.js";
-import type { RunRecord } from "./schema.js";
+import type { Arm, RunRecord } from "./schema.js";
 import { benchmarkEnv, knownSecrets } from "./secrets.js";
 
 const MODES = ["plan", "smoke", "run", "report"] as const;
 type Mode = (typeof MODES)[number];
 
-export type CliArgs = { mode: Mode | null; confirm: boolean; keepWorkspace: boolean; experiment: string; envFile: string; publish: boolean };
+export type CliArgs = { mode: Mode | null; confirm: boolean; keepWorkspace: boolean; experiment: string; envFile: string; publish: boolean; arm: Arm };
 
 /** Parses flags (the root script forwards them with `npm run benchmark -w @lemma/benchmark --`). */
 export function parseArgs(argv: readonly string[]): CliArgs {
@@ -27,7 +27,11 @@ export function parseArgs(argv: readonly string[]): CliArgs {
   };
   const modes = MODES.filter((m) => flags.has(m));
   if (modes.length > 1) throw new Error(`choose one of ${MODES.map((m) => `--${m}`).join(", ")}`);
+  const arm = value("arm") ?? "control";
+  if (arm !== "control" && arm !== "treatment") throw new Error("--arm must be control or treatment");
+  if (flags.has("arm") && modes[0] !== "smoke") throw new Error("--arm applies to --smoke only");
   return {
+    arm,
     mode: modes[0] ?? null,
     confirm: flags.has("confirm"),
     keepWorkspace: flags.has("keep-workspace"),
@@ -39,7 +43,8 @@ export function parseArgs(argv: readonly string[]): CliArgs {
 
 const USAGE = `Usage: npm run benchmark -- <mode>
   --plan               print the frozen 20-run matrix (no API calls)
-  --smoke              one control run on one task to validate the harness (spends a little; exploratory, never aggregated)
+  --smoke              one run on one task to validate the harness (spends a little; exploratory, never aggregated)
+                       --arm treatment smokes the Lemma arm: live server, bridge and one real testnet purchase
   --run --confirm      execute the full matrix (needs the live Lemma server and a funded buyer wallet for treatment)
   --report             aggregate final records and write published/aggregate.json (--no-publish to skip writing)
 Options: --experiment <id> (default ${EXPERIMENT_VERSION}), --env-file <path>, --keep-workspace`;
@@ -102,19 +107,28 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
   const catalog = loadCatalog();
 
   if (args.mode === "smoke") {
+    if (args.arm === "treatment") {
+      const problems = treatmentPreflight(env);
+      if (problems.length === 0) problems.push(...(await serverPreflight(env.LEMMA_API_URL!, env.LEMMA_PROVIDER_ADDRESS!)));
+      if (problems.length > 0) {
+        log(`treatment preflight failed; no run started:\n- ${problems.join("\n- ")}`);
+        return 1;
+      }
+    }
     const stamp = new Date().toISOString().replace(/[^0-9]/g, "").slice(0, 14);
     const planned: PlannedRun = {
       matrixIndex: 0,
-      runId: `smoke-${stamp}-mcp-server-paywall-exact-control`,
+      runId: `smoke-${stamp}-mcp-server-paywall-exact-${args.arm}`,
       taskId: "mcp-server-paywall-exact",
       match: "matched",
       fixtureId: "mcp-server-exact",
-      arm: "control",
+      arm: args.arm,
       repetition: 1,
     };
     const outDir = join(runsDir(), EXPLORATORY_DIR, args.experiment);
     const record = await executeRun(planned, { experimentVersion: args.experiment, series: "exploratory", catalog, env, outDir, keepWorkspace: args.keepWorkspace, log });
     log(describeRecord(record));
+    if (record.lemma !== null) log(`  lemma: ${JSON.stringify(record.lemma)}`);
     log(`record: ${join(outDir, `${record.runId}.json`)}`);
     return record.error?.phase === "startup" ? 1 : 0;
   }

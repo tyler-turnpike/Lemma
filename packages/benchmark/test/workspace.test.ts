@@ -54,5 +54,10 @@ describe("cli arguments", () => {
     expect(parseArgs(["--report", "--no-publish"]).publish).toBe(false);
     expect(parseArgs([]).mode).toBeNull();
     expect(() => parseArgs(["--plan", "--smoke"])).toThrow();
+    expect(parseArgs(["--smoke"]).arm).toBe("control");
+    expect(parseArgs(["--smoke", "--arm", "treatment"]).arm).toBe("treatment");
+    expect(parseArgs(["--smoke", "--arm=treatment"]).arm).toBe("treatment");
+    expect(() => parseArgs(["--smoke", "--arm", "lemma"])).toThrow();
+    expect(() => parseArgs(["--run", "--confirm", "--arm", "treatment"])).toThrow();
   });
 });

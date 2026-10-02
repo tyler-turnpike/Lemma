@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { planMatrix } from "../src/matrix.js";
-import { buildAggregate, median, reduction } from "../src/report.js";
+import { buildAggregate, median, reduction, summaryText } from "../src/report.js";
 import { Aggregate, type RunRecord } from "../src/schema.js";
 import { sampleRecord } from "./helpers.js";
 
@@ -89,5 +89,21 @@ describe("report math", () => {
     const agg = buildAggregate(fullMatrix({ controlUsd: 1, treatmentUsd: 0.6, controlTokens: 1_000_000, treatmentTokens: 500_000 }), "lemma-bench-v1");
     const text = JSON.stringify(agg);
     expect(text).not.toMatch(/\/tmp\/|\/home\/|finalMessage|outputTail|promptSha256|OPENAI|PRIVATE_KEY/);
+  });
+});
+
+describe("summaryText wording", () => {
+  it("says higher, not negative lower, when treatment costs more", () => {
+    const text = summaryText(
+      "not-validated",
+      { allInCost: -2.883, totalTokens: 0.749 } as Aggregate["reductions"],
+      { control: { passRate: 0.889 }, treatment: { passRate: 1 } } as Aggregate["matched"],
+      { costTargetMet: false, tokenTargetMet: true } as Aggregate["criteria"],
+      20,
+      20,
+    );
+    expect(text).toContain("all-in cost 288.3% higher");
+    expect(text).toContain("total tokens 74.9% lower");
+    expect(text).not.toMatch(/-\d/);
   });
 });

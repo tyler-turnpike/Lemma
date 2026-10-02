@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { afterAll, describe, expect, it } from "vitest";
 
-import { codexOptions, deniedReadPaths, filesystemPolicy, threadOptions, type CodexRunConfig } from "../src/codex-config.js";
+import { bridgeNetworkEnv, codexOptions, deniedReadPaths, filesystemPolicy, threadOptions, type CodexRunConfig } from "../src/codex-config.js";
 import { FROZEN_AGENT } from "../src/config.js";
 import { repoRoot } from "../src/paths.js";
 
@@ -49,6 +49,26 @@ describe("Codex configuration", () => {
     expect(env.BUYER_PRIVATE_KEY).toBeUndefined();
     expect(servers.lemma!.default_tools_approval_mode).toBe("approve");
     expect(servers.lemma!.args[0]).toMatch(/bin\/bridge-launcher\.mjs$/);
+  });
+
+  it("passes proxy and CA settings to the bridge only, never credentialed proxy URLs", () => {
+    const net = bridgeNetworkEnv({
+      HTTPS_PROXY: "http://127.0.0.1:3128",
+      http_proxy: "http://user:pass@proxy.example:3128",
+      NODE_EXTRA_CA_CERTS: "/etc/proxy-ca.crt",
+      SSL_CERT_FILE: "/etc/proxy-ca.crt",
+      NO_PROXY: "localhost",
+      OPENAI_API_KEY: FAKE_API_KEY,
+      BUYER_PRIVATE_KEY: FAKE_BUYER,
+    });
+    expect(net).toEqual({ HTTPS_PROXY: "http://127.0.0.1:3128", NODE_EXTRA_CA_CERTS: "/etc/proxy-ca.crt", SSL_CERT_FILE: "/etc/proxy-ca.crt", NO_PROXY: "localhost" });
+    const servers = codexOptions(cfg("treatment")).config?.mcp_servers as Record<string, { env: Record<string, string> }>;
+    for (const [k, v] of Object.entries(bridgeNetworkEnv())) expect(servers.lemma!.env[k]).toBe(v);
+    // The agent's own CLI env and shell policy are unchanged: no proxy, no CA, core inheritance only.
+    const control = codexOptions(cfg("control"));
+    expect(control.env?.HTTPS_PROXY).toBeUndefined();
+    expect(control.env?.NODE_EXTRA_CA_CERTS).toBeUndefined();
+    expect(control.config?.shell_environment_policy).toEqual({ inherit: "core", ignore_default_excludes: false });
   });
 
   it("uses the same sandbox, network and model settings for both arms", () => {

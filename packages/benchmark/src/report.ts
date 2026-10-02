@@ -39,6 +39,9 @@ export function summarizeArm(records: readonly RunRecord[]): ArmSummary {
 }
 
 const pct = (x: number | null) => (x === null ? "n/a" : `${(x * 100).toFixed(1)}%`);
+/** "34.0% lower" for a positive reduction, "288.3% higher" for a negative one. */
+const change = (x: number | null) =>
+  x === null ? "n/a" : x >= 0 ? `${pct(x)} lower` : `${pct(-x)} higher`;
 
 /**
  * Builds the publishable aggregate from final-series records only. Every run is kept (failures
@@ -115,7 +118,7 @@ export function summaryText(
   recorded: number,
   planned: number,
 ): string {
-  const measured = `Treatment median all-in cost ${pct(reductions.allInCost)} lower and median total tokens ${pct(reductions.totalTokens)} lower than control on matched tasks; pass rates ${pct(matched.control.passRate)} control vs ${pct(matched.treatment.passRate)} treatment.`;
+  const measured = `Treatment median all-in cost ${change(reductions.allInCost)} and median total tokens ${change(reductions.totalTokens)} than control on matched tasks; pass rates ${pct(matched.control.passRate)} control vs ${pct(matched.treatment.passRate)} treatment.`;
   if (verdict === "incomplete") {
     return `Incomplete: ${recorded} of ${planned} planned runs recorded. No savings claim is made from a partial matrix. ${recorded > 0 ? `Partial measurement: ${measured}` : ""}`.trim();
   }

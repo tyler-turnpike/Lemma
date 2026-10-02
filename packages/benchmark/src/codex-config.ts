@@ -48,6 +48,39 @@ export function deniedReadPaths(harnessDir: string, root = repoRoot()): string[]
   return unique.filter((p) => !unique.some((q) => q !== p && p.startsWith(q.endsWith(sep) ? q : q + sep)));
 }
 
+/**
+ * Non-secret settings the bridge needs to reach the network the way the harness does: proxy
+ * variables and extra CA bundles (a TLS-intercepting egress proxy re-signs every certificate, so
+ * Node without NODE_EXTRA_CA_CERTS fails with SELF_SIGNED_CERT_IN_CHAIN) plus Node flags. Codex
+ * starts MCP servers with only a minimal default environment and the configured `env`, so these
+ * must be passed explicitly. They go to the bridge only; the agent's shell keeps `inherit: core`
+ * and no network. Mirrors `childEnv` in scripts/lib/env.ts.
+ */
+export const BRIDGE_NETWORK_ENV = [
+  "HTTP_PROXY",
+  "HTTPS_PROXY",
+  "NO_PROXY",
+  "http_proxy",
+  "https_proxy",
+  "no_proxy",
+  "NODE_EXTRA_CA_CERTS",
+  "NODE_USE_ENV_PROXY",
+  "NODE_OPTIONS",
+  "SSL_CERT_FILE",
+  "SSL_CERT_DIR",
+] as const;
+
+export function bridgeNetworkEnv(source: NodeJS.ProcessEnv = process.env): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const k of BRIDGE_NETWORK_ENV) {
+    const v = source[k];
+    // Proxy URLs may carry credentials (user:pass@host); never forward those through argv.
+    if (v === undefined || v === "" || /:\/\/[^/@\s]*@/.test(v)) continue;
+    out[k] = v;
+  }
+  return out;
+}
+
 const tomlString = (s: string) => JSON.stringify(s);
 
 /** TOML inline table for the permission profile: read everywhere, write workspace + tmp, deny harness/repo. */
@@ -75,6 +108,7 @@ export function codexOptions(cfg: CodexRunConfig): CodexOptions {
     if (cfg.bridge === undefined) throw new Error("treatment run without bridge configuration");
     const b = cfg.bridge;
     const env: Record<string, string> = {
+      ...bridgeNetworkEnv(),
       LEMMA_BENCH_BRIDGE_ENTRY: bridgeEntrypoint(),
       LEMMA_BENCH_SECRETS_FILE: b.secretsFile,
       LEMMA_API_URL: b.apiUrl,
