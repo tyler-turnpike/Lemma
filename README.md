@@ -62,7 +62,7 @@ More detail: [docs/architecture.md](docs/architecture.md), [docs/interfaces.md](
 | Provider (x402 `payTo`, voucher signer) | [`0xA9361c7A43b65933EAFdCEf63CfC07449C38AcB1`](https://sepolia.arbiscan.io/address/0xA9361c7A43b65933EAFdCEf63CfC07449C38AcB1) |
 | Facilitator | [`0xeD09e99F20cEEd22BFff0D465f5A61d061b36e05`](https://sepolia.arbiscan.io/address/0xeD09e99F20cEEd22BFff0D465f5A61d061b36e05) |
 | Evaluator | [`0xd059A60Cf6Cc3fD83002389f2128cFB6F1c70a77`](https://sepolia.arbiscan.io/address/0xd059A60Cf6Cc3fD83002389f2128cFB6F1c70a77) |
-| Hosted server and dashboard | [LIVE URL] |
+| Hosted server and dashboard | https://lemma-production-8383.up.railway.app |
 | Live demo purchase | [live x402 settlement](https://sepolia.arbiscan.io/tx/0x38e6c25b7b690e61d6de9a3ab533d7a08d71f2e0f62bdf26ae35d887d4a4f869) · [bond refund](https://sepolia.arbiscan.io/tx/0x4ce2d7730211aa1e37604ed5adccc9803a35ec487379eed61c87887fed9bc1ce) |
 
 Registered releases, each priced at 0.12 USDC with a 72-hour claim window and bonded with 1 USDC:
@@ -120,7 +120,7 @@ Claude Code example:
 
 ```bash
 claude mcp add lemma \
-  -e LEMMA_API_URL=[LIVE URL] \
+  -e LEMMA_API_URL=https://lemma-production-8383.up.railway.app \
   -e LEMMA_WORKSPACE="$PWD" \
   -e BUYER_PRIVATE_KEY=0x... \
   -e LEMMA_PROVIDER_ADDRESS=0xA9361c7A43b65933EAFdCEf63CfC07449C38AcB1 \
@@ -178,7 +178,7 @@ Tests need no environment variables. TypeScript and Solidity share fixed EIP-712
 **In progress**
 
 - Live testnet purchase run: [live x402 settlement](https://sepolia.arbiscan.io/tx/0x38e6c25b7b690e61d6de9a3ab533d7a08d71f2e0f62bdf26ae35d887d4a4f869).
-- Hosted deployment: [LIVE URL].
+- Hosted deployment: https://lemma-production-8383.up.railway.app.
 - Full 20-run benchmark matrix (see below).
 
 **Trust assumptions (read these)**

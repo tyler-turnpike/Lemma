@@ -7,7 +7,7 @@ Two videos for the HackQuest submission. The hard limit for each is 5:00.
 
 Narration runs at about 140 words per minute. Read it calmly. If a beat runs long, cut words rather than speeding up. Keep the claims inside [demo-script.md](demo-script.md), "Claims to avoid": no oracle, no marketplace, testnet is not revenue, receipts are not proof of savings, and the evaluator is a trusted team key.
 
-Placeholders to fill before recording: `[LIVE URL]`, `[BENCHMARK RESULT]`.
+Placeholders to fill before recording: `[BENCHMARK RESULT]`.
 
 ---
 
@@ -28,22 +28,22 @@ Placeholders to fill before recording: `[LIVE URL]`, `[BENCHMARK RESULT]`.
    ```
    Record the live command running (shot 4) and use `less` for the walkthrough (shots 5 to 10).
 4. Open these browser tabs in order:
-   - `[LIVE URL]/catalog`
-   - `[LIVE URL]/status`
-   - `[LIVE URL]/resolutions/0x7923e77a42bf135273f54eb029be6b207f53fb5ea2c0d19b2a1cbee37d429f8e` (a resolution ID from the live run; skip it if there is no live run)
-   - `[LIVE URL]/benchmark`
+   - `https://lemma-production-8383.up.railway.app/catalog`
+   - `https://lemma-production-8383.up.railway.app/status`
+   - `https://lemma-production-8383.up.railway.app/resolutions/0x7923e77a42bf135273f54eb029be6b207f53fb5ea2c0d19b2a1cbee37d429f8e` (a resolution ID from the live run; skip it if there is no live run)
+   - `https://lemma-production-8383.up.railway.app/benchmark`
    - https://sepolia.arbiscan.io/address/0x45Ae8799dF4C0878AD22CFe7040383F25f046d56 (registry)
    - https://sepolia.arbiscan.io/tx/0xa015c0cc368327f674f4f0954816b6ccc6154a384d73c61ae41ab0105173cc42 (deploy)
    - https://sepolia.arbiscan.io/tx/0x0663aef4a43b91840a69bb11698b1253235cb6d14d060c830a92ff2ace9e72bb (a bond deposit for `x402-mcp-server@1.0.0`)
    - https://sepolia.arbiscan.io/tx/0x38e6c25b7b690e61d6de9a3ab533d7a08d71f2e0f62bdf26ae35d887d4a4f869 (the settlement tx from the live run, if there is one)
 
-   If `[LIVE URL]` is not deployed, run the server locally with the registry environment and use `http://localhost:3000` instead. If that is not possible either, drop shots 2 and 11 and give their time to the terminal walkthrough.
+   If `https://lemma-production-8383.up.railway.app` is not deployed, run the server locally with the registry environment and use `http://localhost:3000` instead. If that is not possible either, drop shots 2 and 11 and give their time to the terminal walkthrough.
 
 ### Shot list and narration
 
 | Time | Shot | On screen |
 |---|---|---|
-| 0:00 to 0:20 | 1. Title | Landing page at `[LIVE URL]`, the hero "Stop paying agents to rediscover solved work" |
+| 0:00 to 0:20 | 1. Title | Landing page at the hero "Stop paying agents to rediscover solved work" |
 | 0:20 to 0:40 | 2. Catalog | `/catalog`: both releases, 0.12 USDC price, bond, 72 h window, "Provisional, not benchmarked" badge |
 | 0:40 to 1:00 | 3. Contract | Arbiscan: registry address, deploy tx, a bond deposit tx |
 | 1:00 to 1:15 | 4. Run | Terminal: type and run the demo command, and let the banner and setup lines appear |
@@ -120,7 +120,7 @@ Format: talking head, or voice over five simple slides. About 260 words.
 | 0:25 to 0:55 | Solution: the flow diagram from the README |
 | 0:55 to 1:20 | Why Arbitrum and x402: the registry on Arbiscan |
 | 1:20 to 1:40 | Where we are: terminal with `DEMO PASSED`, the `/status` page |
-| 1:40 to 1:55 | Ask: repo URL and `[LIVE URL]` |
+| 1:40 to 1:55 | Ask: repo URL and `https://lemma-production-8383.up.railway.app` |
 
 ### Narration (word for word)
 
