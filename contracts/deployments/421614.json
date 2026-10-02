@@ -1,0 +1,52 @@
+{
+  "admin": "0x4Ce5cE1F77bE49a060D7c0DCAee3835C067EBCD4",
+  "blockNumber": 11831233,
+  "chainId": 421614,
+  "compiler": "solc 0.8.30, optimizer 200 runs, evm shanghai",
+  "deployer": "0x4Ce5cE1F77bE49a060D7c0DCAee3835C067EBCD4",
+  "domainSeparator": "0x7b36a988a9547ccb58c8f6df2d7971525931033519eb31ed8decd537e7ee4fa2",
+  "registry": "0x45Ae8799dF4C0878AD22CFe7040383F25f046d56",
+  "sourceCommit": "850a1f7bcdb82cec78efb77e42c409153123ccd1",
+  "usdc": "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d",
+  "deployTxHash": "0xa015c0cc368327f674f4f0954816b6ccc6154a384d73c61ae41ab0105173cc42",
+  "deployBlockNumber": "315091623",
+  "roles": {
+    "admin": "0x4Ce5cE1F77bE49a060D7c0DCAee3835C067EBCD4",
+    "provider": "0xA9361c7A43b65933EAFdCEf63CfC07449C38AcB1",
+    "facilitator": "0xeD09e99F20cEEd22BFff0D465f5A61d061b36e05",
+    "evaluator": "0xd059A60Cf6Cc3fD83002389f2128cFB6F1c70a77"
+  },
+  "releases": [
+    {
+      "id": "x402-mcp-client@1.0.0",
+      "releaseId": "0x01efd47d351906ba16367c07164dd008e4c554f3e878c227aa8c3018611e3ac4",
+      "provider": "0xA9361c7A43b65933EAFdCEf63CfC07449C38AcB1",
+      "evaluator": "0xd059A60Cf6Cc3fD83002389f2128cFB6F1c70a77",
+      "priceAtomic": "120000",
+      "claimWindowSeconds": 259200,
+      "registerTxHash": "0xbca22faddefbfd5b1e86e86e726d795f5647283fe7ddbb2d33152fdc6fb6998a",
+      "bondTxHashes": [
+        "0xcaab553ed1266a1d958ffae50558d01bf8add62227ee7a847e08a904b888eb37",
+        "0xfdd7e03ac05099a893e424533f2779b0dc0b6831214bb08f634359af18d1fc85"
+      ],
+      "availableBondAtomic": "1000000",
+      "reservedBondAtomic": "0"
+    },
+    {
+      "id": "x402-mcp-server@1.0.0",
+      "releaseId": "0x62bba684a1de6151831106c327faa33f272c0421ab9276ef67921acb227c6edf",
+      "provider": "0xA9361c7A43b65933EAFdCEf63CfC07449C38AcB1",
+      "evaluator": "0xd059A60Cf6Cc3fD83002389f2128cFB6F1c70a77",
+      "priceAtomic": "120000",
+      "claimWindowSeconds": 259200,
+      "registerTxHash": "0x7d2291055665968ea15984a79202e9f8052cb1dee9f5dde194f51369985bef6b",
+      "bondTxHashes": [
+        "0xceeb6c7cecfadc095f8c509315a1fcbd90220707dbcd1e0e6dd8ad9dd467acc5",
+        "0x0663aef4a43b91840a69bb11698b1253235cb6d14d060c830a92ff2ace9e72bb"
+      ],
+      "availableBondAtomic": "1000000",
+      "reservedBondAtomic": "0"
+    }
+  ],
+  "updatedAt": "2026-10-02T20:05:13.781Z"
+}
