@@ -1,4 +1,5 @@
 import { footer } from "../content.js";
+import { Link } from "../router.js";
 import { Logo } from "./Logo.js";
 
 export function Footer() {
@@ -13,9 +14,9 @@ export function Footer() {
               <ul className="mt-4 space-y-3">
                 {column.links.map((link) => (
                   <li key={link.label}>
-                    <a href={link.href} className="text-sm text-muted transition-colors hover:text-fg">
+                    <Link href={link.href} className="text-sm text-muted transition-colors hover:text-fg">
                       {link.label}
-                    </a>
+                    </Link>
                   </li>
                 ))}
               </ul>

@@ -1,0 +1,23 @@
+{
+  "version": "0.1.0",
+  "chain": {
+    "network": "arbitrum-sepolia",
+    "chainId": 421614,
+    "caip2": "eip155:421614"
+  },
+  "usdc": "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d",
+  "registry": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  "provider": "0x06e65D4018bB9FdEC176056d4a2FC0919e8EEFFf",
+  "facilitator": null,
+  "evaluator": "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
+  "paidTools": {
+    "enabled": true,
+    "reason": null
+  },
+  "provisionalOverride": true,
+  "trust": {
+    "evaluator": "team-operated key",
+    "network": "testnet only",
+    "notice": "Testnet only (Arbitrum Sepolia, test USDC). The evaluator is a team-operated key, not decentralized arbitration; the server and provider are first-party infrastructure. Lemma demonstrates an economic mechanism, not trustless software correctness."
+  }
+}

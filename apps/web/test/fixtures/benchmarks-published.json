@@ -1,0 +1,84 @@
+{
+  "status": "published",
+  "aggregate": {
+    "schemaVersion": "1",
+    "experimentVersion": "fixture-1",
+    "generatedAt": "2026-10-03T12:00:00.000Z",
+    "model": "fixture-model",
+    "runtime": "local",
+    "costLabel": "Estimated raw model cost from frozen list prices (fixture); not charged amounts.",
+    "plannedRuns": 20,
+    "recordedRuns": 20,
+    "complete": true,
+    "matched": {
+      "control": {
+        "runs": 9,
+        "passed": 9,
+        "passRate": 1.0,
+        "medianAllInUsd": 1.84,
+        "medianRawModelUsd": 1.84,
+        "medianTotalTokens": 1210000,
+        "medianDurationMs": 612000,
+        "lemmaSpendUsd": 0,
+        "startupFailures": 0,
+        "runFailures": 0
+      },
+      "treatment": {
+        "runs": 9,
+        "passed": 9,
+        "passRate": 1.0,
+        "medianAllInUsd": 1.21,
+        "medianRawModelUsd": 1.21,
+        "medianTotalTokens": 802000,
+        "medianDurationMs": 404000,
+        "lemmaSpendUsd": 0.36,
+        "startupFailures": 0,
+        "runFailures": 0
+      }
+    },
+    "noMatch": {
+      "control": {
+        "runs": 1,
+        "passed": 1,
+        "passRate": 1.0,
+        "medianAllInUsd": 0.9,
+        "medianRawModelUsd": 0.9,
+        "medianTotalTokens": 640000,
+        "medianDurationMs": 300000,
+        "lemmaSpendUsd": 0,
+        "startupFailures": 0,
+        "runFailures": 0
+      },
+      "treatment": {
+        "runs": 1,
+        "passed": 1,
+        "passRate": 1.0,
+        "medianAllInUsd": 0.88,
+        "medianRawModelUsd": 0.88,
+        "medianTotalTokens": 630000,
+        "medianDurationMs": 290000,
+        "lemmaSpendUsd": 0,
+        "startupFailures": 0,
+        "runFailures": 0
+      },
+      "treatmentUsdcSpentAtomic": "0"
+    },
+    "reductions": {
+      "allInCost": 0.3424,
+      "totalTokens": 0.3372
+    },
+    "perTask": [],
+    "criteria": {
+      "costTargetMet": true,
+      "tokenTargetMet": true,
+      "noCorrectnessRegression": true,
+      "noMatchZeroSpend": true,
+      "allMet": true
+    },
+    "verdict": "validated",
+    "summary": "Fixture summary for dashboard tests only; not a measured result.",
+    "limitations": [
+      "Fixture data for dashboard tests only; not a measured result."
+    ]
+  }
+}

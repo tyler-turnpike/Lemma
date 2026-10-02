@@ -1,0 +1,40 @@
+{
+  "resolutionId": "0x265fdcf960f3d5d41c8d802b8d13bda94007ad9fb10e6b138d967ef2bba88394",
+  "release": "x402-mcp-server@1.0.0",
+  "releaseId": "0x62bba684a1de6151831106c327faa33f272c0421ab9276ef67921acb227c6edf",
+  "buyer": "0x3bD15629683aC1c984997f36755698F4c4C15d0E",
+  "priceAtomic": "120000",
+  "status": "settled",
+  "paymentHash": "0x59531f178ba8516c63df4c42508756e991b1031a2647abd706e818cac649e7c2",
+  "payloadDigest": "0x9c6772df3b28d9606a710f43bd0b99d4cf6bca19cb34d61c9d91ba170864bb52",
+  "issuedAt": "2026-10-02T19:42:10Z",
+  "expiresAt": "2026-10-03T19:42:10Z",
+  "payment": {
+    "txHash": "0x59531f178ba8516c63df4c42508756e991b1031a2647abd706e818cac649e7c2",
+    "network": "eip155:421614",
+    "payer": "0x3bD15629683aC1c984997f36755698F4c4C15d0E",
+    "amountAtomic": "120000",
+    "settledAt": "2026-10-02T19:42:10.479Z"
+  },
+  "voucher": {
+    "schemaVersion": "1",
+    "chainId": 421614,
+    "verifyingContract": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+    "signer": "0x06e65D4018bB9FdEC176056d4a2FC0919e8EEFFf",
+    "signature": "0xcba5042b928d3e736753c51864e629a719e30be6d4223b9c9bcb0ad579d682644d11db46cc402c0235a7540aff63cca0211e965f11a470f71901286b9a683e731b",
+    "voucher": {
+      "resolutionId": "0x265fdcf960f3d5d41c8d802b8d13bda94007ad9fb10e6b138d967ef2bba88394",
+      "releaseId": "0x62bba684a1de6151831106c327faa33f272c0421ab9276ef67921acb227c6edf",
+      "buyer": "0x3bD15629683aC1c984997f36755698F4c4C15d0E",
+      "amount": "120000",
+      "paymentHash": "0x59531f178ba8516c63df4c42508756e991b1031a2647abd706e818cac649e7c2",
+      "payloadDigest": "0x9c6772df3b28d9606a710f43bd0b99d4cf6bca19cb34d61c9d91ba170864bb52",
+      "expiresAt": "1791056530"
+    }
+  },
+  "receipts": {
+    "count": 0,
+    "latestOutcome": null,
+    "latestAt": null
+  }
+}

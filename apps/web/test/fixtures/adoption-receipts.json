@@ -1,0 +1,23 @@
+{
+  "resolutionId": "0x265fdcf960f3d5d41c8d802b8d13bda94007ad9fb10e6b138d967ef2bba88394",
+  "receipts": [
+    {
+      "receiptId": "0xea29cefe56bc28c2fe3c444d0bc4b272de3aae057e7f076b7bd016a1350bbfed",
+      "outcome": "passed",
+      "buyer": "0x3bD15629683aC1c984997f36755698F4c4C15d0E",
+      "digest": "0xab48cf2fc79e11728eddc1d3878b9596c2004c3f1d5443c4a001ec70e1ca73cf",
+      "signature": "0xf411e249cc1b66e88734f00a7f746dae677696c1a330b3b0a2e60d232c9c15302a0bae240371ed10860725e064fafc5c97257103ff8dbe8e71d9a2536ed6c6f61c",
+      "testSummary": {
+        "passed": 3,
+        "failed": 0,
+        "skipped": 0,
+        "durationMs": 1200,
+        "exitCode": 0
+      },
+      "filesChanged": 3,
+      "evidenceDigest": "0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+      "signedAt": "2026-10-02T19:42:10Z",
+      "receivedAt": "2026-10-02T19:42:10.500Z"
+    }
+  ]
+}

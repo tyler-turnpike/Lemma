@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { guarantees } from "../content.js";
+import { Link } from "../router.js";
 import { Grain } from "./Grain.js";
 import { SectionHeader } from "./SectionHeader.js";
 
@@ -77,9 +78,9 @@ export function Guarantees() {
               </div>
               <h3 className="mt-8 text-xl text-fg">{card.title}</h3>
               <p className="mt-2 leading-relaxed text-muted">{card.body}</p>
-              <a href={card.href} className="mt-3 inline-flex items-center gap-1.5 text-fg hover:opacity-80">
+              <Link href={card.href} className="mt-3 inline-flex items-center gap-1.5 text-fg hover:opacity-80">
                 {guarantees.learnMore} <span aria-hidden="true">→</span>
-              </a>
+              </Link>
             </li>
           ))}
         </ul>

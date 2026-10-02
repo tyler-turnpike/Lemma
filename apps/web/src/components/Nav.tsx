@@ -3,8 +3,9 @@ import { useEffect, useState } from "react";
 import { nav } from "../content.js";
 import { Logo } from "./Logo.js";
 import { PillLink } from "./PillLink.js";
+import { Link } from "../router.js";
 
-export function Nav() {
+export function Nav({ active = null }: { readonly active?: string | null }) {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -21,18 +22,19 @@ export function Nav() {
       }`}
     >
       <nav className="container-page flex h-[72px] items-center gap-10" aria-label="Main">
-        <a href="/" aria-label="Lemma home" className="rounded-md">
+        <Link href="/" aria-label="Lemma home" className="rounded-md">
           <Logo />
-        </a>
+        </Link>
         <ul className="hidden items-center gap-6 md:flex">
           {nav.links.map((link) => (
             <li key={link.label}>
-              <a
+              <Link
                 href={link.href}
-                className="text-[0.9375rem] text-muted transition-colors hover:text-fg"
+                aria-current={link.href === active ? "page" : undefined}
+                className={`text-[0.9375rem] transition-colors hover:text-fg ${link.href === active ? "text-fg" : "text-muted"}`}
               >
                 {link.label}
-              </a>
+              </Link>
             </li>
           ))}
         </ul>
