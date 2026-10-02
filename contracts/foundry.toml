@@ -9,6 +9,7 @@ evm_version = "shanghai"
 optimizer = true
 optimizer_runs = 200
 bytecode_hash = "none"
+fs_permissions = [{ access = "read-write", path = "./deployments" }]
 
 [rpc_endpoints]
 arbitrum_sepolia = "${ARBITRUM_SEPOLIA_RPC_URL}"

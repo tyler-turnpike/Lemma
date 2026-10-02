@@ -1,6 +1,6 @@
 # Contract Sources
 
-The future `ResolutionWarrantyRegistry.sol` belongs here.
+`ResolutionWarrantyRegistry.sol` is the MVP settlement contract.
 
 Keep the MVP to one settlement contract with a fixed Arbitrum Sepolia USDC address. Do not add marketplace governance, tokens, auctions, upgradeability, or general arbitration.
 

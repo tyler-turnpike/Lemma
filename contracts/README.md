@@ -26,28 +26,43 @@ x402 remains the payment rail. The contract provides bounded recourse after paym
 - Operating the x402 facilitator.
 - Open governance or a protocol token.
 
-## Planned public interface
+## Status
 
-The planned contract is `ResolutionWarrantyRegistry` with these operations:
+`src/ResolutionWarrantyRegistry.sol` is implemented and tested (unit, fuzz, invariant, fixed EIP-712 vectors). Not yet deployed to Arbitrum Sepolia.
 
-- `registerRelease`
-- `depositBond`
-- `deactivateRelease`
-- `withdrawUnreservedBond`
-- `activateResolution`
-- `finalizeOutcome`
-- `expireResolution`
-- `withdrawCredit`
+## Public interface
 
-The current package contains only a trivial Foundry scaffold test.
+`ResolutionWarrantyRegistry(IERC20 usdc, address admin)` — OpenZeppelin `AccessControl` (`DEFAULT_ADMIN_ROLE`), `EIP712("LemmaWarrantyRegistry", "1")`, `Pausable`, `ReentrancyGuard`.
+
+| Operation | Caller | Effect |
+| --- | --- | --- |
+| `registerRelease(releaseId, provider, evaluator, price, claimWindow)` | admin | New active release; `claimWindow = 0` means 72h (max 30 days). |
+| `depositBond(releaseId, amount)` | provider | `transferFrom` into `availableBond`. Blocked when paused or release inactive. |
+| `withdrawUnreservedBond(releaseId, amount)` | provider | From `availableBond` only; reserved bond is never withdrawable. |
+| `deactivateRelease(releaseId)` | admin or provider | Stops new activations; existing warranties still finalize/expire. |
+| `activateResolution(Voucher, providerSig)` | `msg.sender == voucher.buyer` | Checks expiry, provider EIP-712 signature, `amount == price`, unused `resolutionId` and `paymentHash`, bond; moves `amount` available -> reserved; claim deadline = now + claimWindow. Blocked when paused. |
+| `finalizeOutcome(Outcome, evaluatorSig)` | anyone | Evaluator-signed, before deadline. Pass (1): reserved -> available. Fail (2): reserved -> `credits[buyer]`. |
+| `expireResolution(resolutionId)` | anyone | After deadline: Active -> Expired, reserved -> available. |
+| `withdrawCredit()` | buyer | Pull payment of full credit. |
+| `pause()` / `unpause()` | admin | Pause gates deposits and activations only; outcomes, expiry and withdrawals keep working. |
+
+Views: `getRelease`, `getWarranty`, `credits`, `paymentHashUsed`, `totalAvailableBond`, `totalReservedBond`, `totalCredits`, `domainSeparator`, `voucherStructHash`, `outcomeStructHash`, `hashVoucher`, `hashOutcome` (full EIP-712 digests).
+
+Signatures are 65-byte ECDSA (`r‖s‖v`) from EOAs. ERC-1271 contract signers are not supported because OpenZeppelin's `SignatureChecker` needs the Cancun `MCOPY` opcode and this project compiles for Shanghai.
+
+EIP-712 types and cross-language test vectors: [`test/vectors.md`](test/vectors.md).
 
 ## Dependencies
 
-The implementation will pin OpenZeppelin Contracts and forge-std in `lib`. No external Solidity dependency is installed during scaffolding.
+Git submodules in `lib/` (pins in `foundry.lock`): forge-std `v1.17.0`, OpenZeppelin Contracts `v5.4.0` (v5.5+ uses `MCOPY` in `SignatureChecker`/`Bytes`, which does not compile for Shanghai). After cloning run `git submodule update --init --recursive`. Note that the root `.gitignore` lists `contracts/lib/`; the submodule gitlinks were added with `git add -f`.
 
 ## Environment variables
 
-Foundry uses `ARBITRUM_SEPOLIA_RPC_URL`. Deployment will also require the public USDC address and a deployer key, supplied outside source control.
+Foundry uses `ARBITRUM_SEPOLIA_RPC_URL`.
+
+- `script/Deploy.s.sol:Deploy`: `DEPLOYER_PRIVATE_KEY`, `USDC_ADDRESS`, `REGISTRY_ADMIN_ADDRESS`, optional `EXPECTED_CHAIN_ID` (default 421614), optional `SOURCE_COMMIT`. On chain 421614 the USDC address must be `0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d`; the token must have 6 decimals. Writes `deployments/<chainId>.json` (no secrets).
+- `script/RegisterRelease.s.sol:RegisterRelease`: `ADMIN_PRIVATE_KEY` (falls back to `DEPLOYER_PRIVATE_KEY`), `REGISTRY_ADDRESS`, `RELEASE_ID` (bytes32) or `RELEASE_KEY` (string, keccak256-hashed), `PROVIDER_ADDRESS`, `EVALUATOR_ADDRESS`, `RELEASE_PRICE` (6-decimal units), optional `CLAIM_WINDOW` (seconds).
+- `script/RegisterRelease.s.sol:DepositBond`: `PROVIDER_PRIVATE_KEY`, `REGISTRY_ADDRESS`, `RELEASE_ID` or `RELEASE_KEY`, `BOND_AMOUNT`.
 
 ## Development and tests
 
@@ -55,6 +70,17 @@ From the Lemma root:
 
 - `npm run contracts:build`
 - `npm run contracts:test`
+
+Or directly from `contracts/`: `forge test` (add `-vv --match-contract VectorsTest` to print the vectors).
+
+Deploy:
+
+```sh
+cd contracts
+forge script script/Deploy.s.sol:Deploy --rpc-url arbitrum_sepolia --broadcast
+forge script script/RegisterRelease.s.sol:RegisterRelease --rpc-url arbitrum_sepolia --broadcast
+forge script script/RegisterRelease.s.sol:DepositBond --rpc-url arbitrum_sepolia --broadcast
+```
 
 ## Security constraints
 
