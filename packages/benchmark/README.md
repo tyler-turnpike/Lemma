@@ -73,7 +73,7 @@ These are read from the repository's `.env` (or the shell environment) and never
 | `LEMMA_PROVIDER_ADDRESS` | Expected `payTo` and voucher signer |
 | `RESOLUTION_WARRANTY_REGISTRY_ADDRESS`, `ARBITRUM_SEPOLIA_RPC_URL`, `USDC_ADDRESS` | Optional; passed to the bridge for warranty activation |
 
-The model is frozen in `src/config.ts` (`gpt-5.6-terra`), not read from the environment. `LEMMA_BENCHMARK_MODEL` is unused.
+The model is frozen in `src/config.ts` (`gpt-5.6-luna`), not read from the environment. `LEMMA_BENCHMARK_MODEL` is unused.
 
 ## Development and tests
 

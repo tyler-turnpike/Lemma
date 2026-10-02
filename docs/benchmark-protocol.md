@@ -10,7 +10,7 @@ Use the OpenAI Codex SDK (`@openai/codex-sdk` 0.160.0, which drives `codex-cli` 
 
 Frozen for experiment `lemma-bench-v1` (`packages/benchmark/src/config.ts`):
 
-- Model `gpt-5.6-terra`, reasoning effort `medium`, approval policy `never`. `GET /v1/models` listed the gpt-5.4, gpt-5.5 and gpt-5.6 families on 2026-10-02. Codex 0.160.0 ships model metadata for gpt-5.5 and gpt-5.6 but not for dated snapshots, which run with degraded fallback metadata. The chosen model is therefore an alias, and provider-side updates during the run window are an uncontrolled variable.
+- Model `gpt-5.6-luna` (lowest-priced gpt-5.6 model, chosen to fit the API budget; a terra smoke run cost about $0.38, a luna smoke run about $0.03), reasoning effort `medium`, approval policy `never`. `GET /v1/models` listed the gpt-5.4, gpt-5.5 and gpt-5.6 families on 2026-10-02. Codex 0.160.0 ships model metadata for gpt-5.5 and gpt-5.6 but not for dated snapshots, which run with degraded fallback metadata. The chosen model is therefore an alias, and provider-side updates during the run window are an uncontrolled variable.
 - Time budget: 20 minutes of wall-clock agent time per run. Acceptance runs afterwards and is not counted against the budget.
 - Cost: an estimate from a frozen standard-tier list-price table (USD per 1M tokens: input 2.00, cached input 0.20, output 12.00), read from the OpenAI pricing page on 2026-10-02. Codex reports tokens but no charged amount, so every cost figure is labelled `estimate`, and token counts serve as the independent measure.
 
