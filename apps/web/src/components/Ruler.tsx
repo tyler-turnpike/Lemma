@@ -15,10 +15,12 @@ function formatPill(unit: RulerSpec["unit"], value: number): string {
   return unit === "tokens" ? `${(value / 1_000_000).toFixed(2)}M` : `$${value.toFixed(2)}`;
 }
 
-// Hides moving marks near the centre (where the fixed marker sits) and fades both edges.
+// Hides moving ticks near the centre (where the fixed marker sits) and fades both edges.
 function centreMask(gap: number): string {
   return `linear-gradient(to right, transparent, #000 10%, #000 calc(50% - ${gap}px), transparent calc(50% - ${gap}px), transparent calc(50% + ${gap}px), #000 calc(50% + ${gap}px), #000 90%, transparent)`;
 }
+
+const EDGE_FADE = "linear-gradient(to right, transparent, #000 10%, #000 90%, transparent)";
 
 interface RulerProps {
   readonly spec: RulerSpec;
@@ -60,6 +62,9 @@ export function Ruler({ spec, labels }: RulerProps) {
         if (!node) return;
         const tickIndex = (shift + index) * spec.labelEvery;
         node.textContent = formatLabel(spec.unit, spec.start + tickIndex * spec.perTick);
+        // Fade labels out as they slide under the value pill.
+        const distance = Math.abs(index * period - offset - width / 2);
+        node.style.opacity = String(Math.min(1, Math.max(0, (distance - 46) / 24)));
       });
       if (pillRef.current) {
         const ticksToCentre = shift * spec.labelEvery + (offset + width / 2) / SPACING;
@@ -117,7 +122,7 @@ export function Ruler({ spec, labels }: RulerProps) {
 
   const labelRow = (
     <div className="relative h-6">
-      <div className="absolute inset-0 overflow-hidden" style={{ maskImage: centreMask(48) }}>
+      <div className="absolute inset-0 overflow-hidden" style={{ maskImage: EDGE_FADE }}>
         <div ref={labelStripRef} className="absolute inset-y-0 left-0 will-change-transform">
           {Array.from({ length: labelCount }, (_, i) => (
             <span

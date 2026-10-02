@@ -65,3 +65,19 @@
     padding-inline: 1.5rem;
   }
 }
+
+/* Typing effect for the mock prompt; steps() keeps it monospace-accurate. */
+.mock-type {
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  vertical-align: bottom;
+  width: 0;
+  animation: mock-type 1.5s steps(var(--chars)) forwards;
+}
+
+@keyframes mock-type {
+  to {
+    width: calc(var(--chars) * 1ch);
+  }
+}
