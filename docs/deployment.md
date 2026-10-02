@@ -39,6 +39,8 @@ The deployed server must enable HTTPS-only transport, Strict Transport Security,
 
 Pause new contract activations and disable paid tools if settlement, voucher signing, or accounting behaves unexpectedly. Preserve read-only resolution recovery and withdrawal access. Never delete evidence to make a failed deployment appear clean.
 
-## Scaffold note
+## Runtime note
 
-The current Docker image builds the placeholder server module and exits when run. A long-lived HTTP process and health endpoint will be introduced with the server implementation.
+The Docker image (`ops/Dockerfile`) builds every workspace and the Vite dashboard, then runs `node apps/server/dist/index.js` as a long-lived process on `PORT`. The same process serves the dashboard from `apps/web/dist`. On start it applies pending migrations from `apps/server/migrations` when `DATABASE_URL` is set (advisory-locked, idempotent; disable with `LEMMA_MIGRATE_ON_START=false` and use `npm run migrate -w @lemma/server` instead). `GET /health` returns `{ ok, version }`, with 503 when the database is unreachable. The image `HEALTHCHECK` and the Railway `healthcheckPath` both use it. Set `LEMMA_TRUST_PROXY=true` on Railway. Keep one replica.
+
+Never test with Anvil's default dev keys on a real network. They are public, and on Arbitrum Sepolia those addresses already carry EIP-7702 delegation code from sweeper bots. The fork script clears that code locally.

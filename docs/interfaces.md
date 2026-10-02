@@ -23,12 +23,17 @@ Rules:
 
 - The x402 amount required by `lemma_purchase_resolution` equals the preview's `priceAtomic`. The server refuses before payment when the preview is missing, expired, not purchasable, or already settled for that `(previewId, buyer)`. In the already-settled case the error says to call `lemma_recover_resolution`.
 - One settled purchase per `(previewId, buyer)`. Recovery returns that exact resolution and voucher, so a lost response never causes a second payment.
-- `resolution.paymentHash` is the settlement transaction hash. `voucher.message.paymentHash` holds the same value.
+- `resolution.paymentHash` is the settlement transaction hash. `voucher.voucher.paymentHash` holds the same value.
 - The voucher is signed by the provider key over the EIP-712 `ResolutionVoucher` type with domain `lemmaDomain(registryAddress, 421614)`. `amount` equals the release price, and `payloadDigest` equals `bundleDigest(resolution.bundle)`.
+- `voucher.voucher.expiresAt` is settlement time + 24 hours (unix seconds) and equals `resolution.expiresAt`.
+- The x402 payer (`authorization.from` of the EIP-3009 payload) must equal `buyer`; otherwise the server refuses before verification (`payer_mismatch`).
+- `previewId` is a random 32-byte server identifier and a preview is purchasable for 30 minutes after it is issued. Treat it as a bearer value: `(previewId, buyer)` is what recovery needs.
+- The paid response carries the signed voucher directly. The `@x402/mcp` wrapper settles after the tool handler but before returning, and the server signs the voucher in its `onAfterSettlement` hook, so `paymentHash` is the real settlement transaction. The x402 `SettleResponse` is also in `_meta["x402/payment-response"]`. If the response is lost, `lemma_recover_resolution` returns the identical objects.
+- Tool errors are results with `isError: true` and `{ error: { code, message } }` (codes include `preview_not_found`, `preview_expired`, `not_purchasable`, `release_unavailable`, `already_settled`, `purchase_in_progress`, `payer_mismatch`, `paid_tools_disabled`, `invalid_signature`, `buyer_mismatch`, `resolution_not_found`). An x402 payment challenge is the standard `PaymentRequired` result (`structuredContent` with `x402Version` and `accepts`).
 
 ## Read-only HTTP API
 
-- `GET /health` returns `{ ok, version }`.
+- `GET /health` returns `{ ok, version }` (503 when the database is unreachable).
 - `GET /api/v1/status` returns chain, USDC, registry, provider, facilitator and evaluator public addresses, plus the trust notice.
 - `GET /api/v1/releases` and `GET /api/v1/releases/:id`.
 - `GET /api/v1/resolutions/:resolutionId` returns the resolution summary, payment tx, voucher and receipt status. It never returns the patch bundle.

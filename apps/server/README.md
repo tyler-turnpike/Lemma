@@ -2,7 +2,7 @@
 
 ## Purpose and economic role
 
-The server will convert a safe task and repository profile into a free preview or a paid Compatibility Resolution. It is the remote coordination boundary between the buyer bridge, the curated catalog, x402 settlement, warranty vouchers, adoption receipts, and the public dashboard.
+The server converts a safe task and repository profile into a free preview or a paid Compatibility Resolution. It is the remote coordination boundary between the buyer bridge, the curated catalog, x402 settlement, warranty vouchers, adoption receipts, and the public dashboard.
 
 The server does not make open-source code scarce. It charges for a verified, context-specific integration route and the warranty attached to it.
 
@@ -27,20 +27,45 @@ The server does not make open-source code scarce. It charges for a verified, con
 - Letting a model authorize payment.
 - Adjudicating warranty failures with the provider signing key.
 
-## Planned interfaces
+## Status
 
-The server will expose:
+Implemented: remote MCP (`lemma_preview`, `lemma_purchase_resolution` via x402, `lemma_recover_resolution`, `lemma_submit_receipt`), self-hosted facilitator, Postgres and in-memory persistence, read-only API, static dashboard hosting, security middleware. Verified end to end against an Anvil fork of Arbitrum Sepolia (`scripts/e2e-fork.ts`). The chain-event indexer is not built yet (the cursor table exists).
 
-- `/mcp`
-- `/facilitator/supported`
-- `/facilitator/verify`
-- `/facilitator/settle`
-- `/api/v1/releases`
-- `/api/v1/resolutions/:id`
-- `/api/v1/benchmarks`
-- `/api/v1/adoption-receipts`
+## Interfaces
 
-The current `src/index.ts` exports only scaffold metadata.
+- `POST /mcp`: stateless Streamable HTTP (JSON responses). Tools and rules in `docs/interfaces.md`.
+- `GET /facilitator/supported`, `POST /facilitator/verify`, `POST /facilitator/settle`: x402 `exact` on `eip155:421614`, restricted to USDC paid to the provider.
+- `GET /health`, `GET /api/v1/status`, `/api/v1/releases[/:id]`, `/api/v1/resolutions/:id`, `/api/v1/adoption-receipts?resolutionId=`, `/api/v1/benchmarks`.
+- Everything else serves `apps/web/dist` (SPA fallback to `index.html`) when it exists.
+
+## Layout
+
+- `src/index.ts`: process entry (config, migrations, Postgres or in-memory repository, `@hono/node-server`). Importing it does not start a server.
+- `src/app.ts`: `createApp(deps)` Hono factory used by the entry and the tests.
+- `src/mcp.ts`: MCP tools. `src/service.ts`: preview, purchase gating, settlement finalization, voucher signing, recovery, receipts.
+- `src/payments/x402.ts`: `x402ResourceServer` + `ExactEvmScheme`, one cached `createPaymentWrapper` per atomic price (price expressed as an `AssetAmount`).
+- `src/payments/facilitator.ts`: `x402Facilitator` + `@x402/evm` exact facilitator with a viem signer, plus an in-process `FacilitatorClient`.
+- `src/repository/`: `Repository` interface, `MemoryRepository`, `PostgresRepository` (drizzle + postgres-js), migration runner. SQL lives in `migrations/`.
+- `src/resolver.ts`: deterministic catalog resolver.
+
+## Settlement and voucher ordering
+
+`@x402/mcp` verifies the payment, runs the tool handler, settles, then calls `onAfterSettlement`, and only then returns. The server uses that order:
+
+1. Before any payment: the preview must exist, be unexpired and purchasable, its release must still be in the catalog at the same price, and `(previewId, buyer)` must not be settled. The x402 payer must equal `buyer`. One in-flight paid attempt per `(previewId, buyer)`.
+2. Handler (after verification, before settlement): pins a `pending` resolution with a stable `resolutionId`.
+3. `onAfterSettlement`: validates network, payer and amount, atomically stores the settlement (tx hash unique) and the settled resolution, and signs the voucher with `paymentHash` = settlement tx. It never throws; failures are kept in memory and retried by recovery.
+4. The tool returns `{ resolution, voucher }` read back from storage, with the x402 `SettleResponse` in `_meta`.
+
+Voucher signing is deterministic (RFC 6979, expiry derived from the stored settlement time), so re-signing after a crash yields the same voucher.
+
+## Environment variables
+
+`DATABASE_URL` (required in production; otherwise in-memory with a warning), `PUBLIC_BASE_URL` (CORS origin), `PORT`, `ARBITRUM_SEPOLIA_RPC_URL`, `USDC_ADDRESS` (must be Arbitrum Sepolia USDC), `RESOLUTION_WARRANTY_REGISTRY_ADDRESS`, `PROVIDER_ADDRESS`/`PROVIDER_PRIVATE_KEY`, `FACILITATOR_ADDRESS`/`FACILITATOR_PRIVATE_KEY`, `EVALUATOR_ADDRESS`, `LEMMA_ALLOW_PROVISIONAL` (`false` by default), `LEMMA_TRUST_PROXY` (`true` behind Railway so rate limits use `X-Forwarded-For`), `LEMMA_MIGRATE_ON_START` (default on).
+
+Each address must match its key or startup fails. Without the provider key, registry address, or facilitator key plus RPC URL, paid tools return `paid_tools_disabled` with the missing names; previews and read APIs keep working.
+
+Never add private values to browser-prefixed variables or API responses.
 
 ## Workspace dependencies
 
@@ -59,11 +84,13 @@ Never add private values to browser-prefixed variables or API responses.
 
 ## Development and tests
 
-- `npm run dev -w @lemma/server`
-- `npm run build -w @lemma/server`
-- `npm run test -w @lemma/server`
+- `npm run dev -w @lemma/server` (tsx watch; in-memory storage unless `DATABASE_URL` is set)
+- `npm run build -w @lemma/server`, then `node apps/server/dist/index.js`
+- `npm run migrate -w @lemma/server` applies `migrations/*.sql` to `DATABASE_URL` (the server also migrates on start)
+- `npm run test -w @lemma/server` or `npm test` from the root. Payment tests use a fake facilitator that checks the buyer's EIP-3009 signature offline. The Postgres tests start a throwaway Postgres 16 cluster from `/usr/lib/postgresql/16/bin` (override with `LEMMA_PG_BIN`) and skip when it is unavailable.
+- `npm run e2e:fork -w @lemma/server` (not part of `npm test`): Anvil fork of Arbitrum Sepolia, registry deployed with `forge create`, real x402 settlement through the self-hosted facilitator, onchain activation, recovery and receipt. It uses only Anvil's public dev keys.
 
-Compilation and scaffold tests require no environment values.
+Tests require no environment values.
 
 ## Security constraints
 
@@ -76,6 +103,12 @@ Compilation and scaffold tests require no environment values.
 - Treat settlement timeout as an indeterminate state that requires reconciliation.
 - Run a single facilitator replica until pending settlement state is moved to shared storage.
 
-## Later completion criteria
+## Known gaps
 
-This component is complete when a remote MCP client can preview for free, settle one bounded x402 payment, recover the same resolution without duplicate payment, obtain a provider-signed warranty voucher, and observe the corresponding records through a read-only API.
+- Settlement timeouts are not reconciled automatically. A facilitator that broadcast but timed out leaves the resolution `pending`, and a retry signs a new authorization. Single replica only: the purchase lock, the unrecorded-settlement retry map and the facilitator's pending-settlement store are all in process memory.
+- No chain-event indexer yet. `chain_event_cursors` exists for it.
+- Rate limiting is per process and fixed-window.
+
+## Completion criteria
+
+A remote MCP client can preview for free, settle one bounded x402 payment, recover the same resolution without paying again, obtain a provider-signed warranty voucher, and see the corresponding records through the read-only API. The test suite and the fork run both demonstrate this.
