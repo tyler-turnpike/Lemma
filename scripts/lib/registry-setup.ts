@@ -12,7 +12,7 @@ import { getAddress, type Address, type Hex } from "viem";
 
 import { ERC20_ABI, REGISTRY_ABI, USDC, mined, readRelease, usdc, type Clients } from "./chain.js";
 import { foundryBin } from "./anvil.js";
-import { REPO_ROOT, type Role } from "./env.js";
+import { REPO_ROOT, childEnv, type Role } from "./env.js";
 import type { Narrator } from "./narrate.js";
 
 export const CONTRACTS_DIR = join(REPO_ROOT, "contracts");
@@ -36,8 +36,7 @@ export function deployWithForgeScript(opts: {
   deploymentFile: string;
 }): DeployResult {
   const env: NodeJS.ProcessEnv = {
-    PATH: process.env.PATH,
-    HOME: process.env.HOME,
+    ...childEnv(),
     FOUNDRY_OFFLINE: "true",
     DEPLOYER_PRIVATE_KEY: opts.deployer.privateKey,
     USDC_ADDRESS: USDC,

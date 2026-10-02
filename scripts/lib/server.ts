@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { freePort } from "./anvil.js";
-import { REPO_ROOT } from "./env.js";
+import { REPO_ROOT, childEnv } from "./env.js";
 
 export const SERVER_ENTRY = join(REPO_ROOT, "apps", "server", "dist", "index.js");
 export const BRIDGE_ENTRY = join(REPO_ROOT, "apps", "bridge", "dist", "index.js");
@@ -65,7 +65,7 @@ export async function startServer(env: Record<string, string>, logDir: string): 
   const out = createWriteStream(logFile, { flags: "a" });
   const child = spawn(process.execPath, [SERVER_ENTRY], {
     cwd: REPO_ROOT,
-    env: { PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "", ...env, PORT: String(port), PUBLIC_BASE_URL: url },
+    env: childEnv({ ...env, PORT: String(port), PUBLIC_BASE_URL: url }),
     stdio: ["ignore", "pipe", "pipe"],
   });
   child.stdout?.pipe(out);
@@ -104,4 +104,30 @@ export async function startServer(env: Record<string, string>, logDir: string): 
         }, 12_000).unref();
       }),
   };
+}
+
+/** Tail of a log file, or "" when it does not exist. */
+export function fileTail(path: string, lines = 40): string {
+  try {
+    return readFileSync(path, "utf8").split("\n").slice(-lines).join("\n");
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Printed when a demo fails: whether the server process is still alive, and the tails of the
+ * server and bridge logs (scrubbed). The scratch directory is kept so the full logs survive.
+ */
+export function failureReport(workDir: string, server: RunningServer | null, scrub: (s: string) => string): string {
+  const parts: string[] = [];
+  if (server !== null) {
+    const alive = server.child.exitCode === null && server.child.signalCode === null;
+    parts.push(`server process: ${alive ? "running" : `EXITED (code ${server.child.exitCode}, signal ${server.child.signalCode})`}`);
+    parts.push(`--- server log tail (${server.logFile}) ---\n${fileTail(server.logFile)}`);
+  }
+  const bridgeLog = join(workDir, "logs", "bridge.log");
+  parts.push(`--- bridge log tail (${bridgeLog}) ---\n${fileTail(bridgeLog, 30)}`);
+  parts.push(`kept scratch directory ${workDir}`);
+  return scrub(parts.join("\n"));
 }

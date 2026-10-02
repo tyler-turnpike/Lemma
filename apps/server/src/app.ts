@@ -68,7 +68,12 @@ export function createApp(deps: AppDeps): AppHandle {
   let facilitatorClient = deps.facilitatorClient;
   let facilitatorAddress = config.facilitator.address;
   if (facilitatorClient === undefined && policy !== undefined && config.facilitator.key !== undefined && config.rpcUrl !== undefined) {
-    const local = createLocalFacilitator({ privateKey: config.facilitator.key.privateKey, rpcUrl: config.rpcUrl, policy });
+    const local = createLocalFacilitator({
+      privateKey: config.facilitator.key.privateKey,
+      rpcUrl: config.rpcUrl,
+      policy,
+      onRpcError: (message) => logger.error("facilitator RPC failure", { message }),
+    });
     facilitatorClient = inProcessFacilitatorClient(local.facilitator);
     facilitatorAddress = local.address;
   }

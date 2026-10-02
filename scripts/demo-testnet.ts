@@ -15,12 +15,13 @@
  *                    available, else memory)
  *   --env-database   local server uses DATABASE_URL from .env
  *   --dotenv PATH    default <repo>/.env
- *   --keep           keep the scratch directory
+ *   --keep           keep the scratch directory (always kept, with log tails printed, on failure)
  *
  * Cost per run: 0.24 USDC from the buyer (0.12 kept by the provider for the passing resolution,
  * 0.12 refunded from the bond for the prepared failure), about 8 small transactions of gas
  * across facilitator, buyer and evaluator. Expiry is not demonstrated live (72h window).
  */
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -30,10 +31,10 @@ import { getAddress, parseEther, type Address } from "viem";
 
 import { clients, eth, readRelease, usdc, usdcBalance } from "./lib/chain.js";
 import { runDemo } from "./lib/demo.js";
-import { PUBLIC_ARBITRUM_SEPOLIA_RPC, REPO_ROOT, Scrubber, loadEnv, optional, roleFromEnv } from "./lib/env.js";
+import { PUBLIC_ARBITRUM_SEPOLIA_RPC, REPO_ROOT, Scrubber, childEnv, loadEnv, optional, roleFromEnv } from "./lib/env.js";
 import { ARBISCAN, Narrator } from "./lib/narrate.js";
 import { CONTRACTS_DIR } from "./lib/registry-setup.js";
-import { requireBuilt, startServer, startThrowawayPostgres } from "./lib/server.js";
+import { failureReport, requireBuilt, startServer, startThrowawayPostgres, type RunningServer } from "./lib/server.js";
 
 const scrubber = new Scrubber();
 
@@ -111,6 +112,16 @@ async function main(): Promise<void> {
     if (code !== undefined && code !== "0x") blockers.push(`${name} ${addr} carries contract code`);
   }
   narr.kv("provider", provider.address);
+  // The local server, bridge and evaluator run as child processes; make sure they can reach the
+  // RPC with the environment they will get (proxy / extra CA settings included).
+  const probe = spawnSync(process.execPath, ["-e", `fetch(process.env.RPC,{method:"POST",headers:{"content-type":"application/json"},body:'{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}'}).then(r=>r.json()).then(j=>{process.stdout.write(String(j.result))},e=>{process.stdout.write("ERR "+(e.cause?.code??e.message));})`], {
+    env: childEnv({ RPC: rpcUrl }),
+    encoding: "utf8",
+    timeout: 30_000,
+  });
+  const childOk = probe.stdout.trim() === "0x66eee";
+  narr.kv("child-process RPC", childOk ? "reachable" : `NOT reachable (${scrubber.scrub(probe.stdout.trim() || probe.stderr.trim()).slice(0, 120)})`);
+  if (!childOk) blockers.push("child processes cannot reach ARBITRUM_SEPOLIA_RPC_URL (check HTTPS_PROXY / NODE_EXTRA_CA_CERTS)");
   const api = value("api");
   if (api !== undefined) {
     try {
@@ -134,6 +145,8 @@ async function main(): Promise<void> {
   // ------------------------------------------------------------------ live run
   const workDir = mkdtempSync(join(tmpdir(), "lemma-demo-testnet-"));
   const cleanups: Array<() => void | Promise<void>> = [];
+  let server: RunningServer | null = null;
+  let passed = false;
   try {
     let serverUrl = api?.replace(/\/+$/, "");
     if (serverUrl === undefined) {
@@ -141,7 +154,7 @@ async function main(): Promise<void> {
       const pg = dbUrl !== undefined || flag("memory") ? null : await startThrowawayPostgres();
       if (pg !== null) cleanups.push(() => pg.stop());
       const databaseUrl = dbUrl ?? pg?.url;
-      const server = await startServer(
+      server = await startServer(
         {
           NODE_ENV: "development",
           ...(databaseUrl !== undefined ? { DATABASE_URL: databaseUrl } : {}),
@@ -156,7 +169,8 @@ async function main(): Promise<void> {
         },
         workDir,
       );
-      cleanups.push(() => server.stop());
+      const srv = server;
+      cleanups.push(() => srv.stop());
       serverUrl = server.url;
       narr.kv("server", `${server.url} (local, ${databaseUrl !== undefined ? "Postgres" : "in-memory"}; log ${server.logFile})`);
     }
@@ -174,8 +188,10 @@ async function main(): Promise<void> {
       workDir,
     });
     narr.banner("LIVE DEMO PASSED");
+    passed = true;
     narr.say("Arbiscan links for every transaction are printed above.");
   } finally {
+    if (!passed) process.stderr.write(`\n${failureReport(workDir, server, (s) => scrubber.scrub(s))}\n`);
     for (const fn of cleanups.reverse()) {
       try {
         await fn();
@@ -183,7 +199,7 @@ async function main(): Promise<void> {
         /* best effort */
       }
     }
-    if (flag("keep")) process.stdout.write(`kept ${workDir}\n`);
+    if (flag("keep") || !passed) process.stdout.write(`kept ${workDir}\n`);
     else rmSync(workDir, { recursive: true, force: true });
   }
 }

@@ -13,7 +13,7 @@ import type { Address, Hex } from "viem";
 
 import { BridgeSession, type BridgeEnv } from "./bridge.js";
 import { REGISTRY_ABI, eth, mined, readCredit, readRelease, readWarranty, signedUsdc, statusName, usdc, usdcBalance, type Clients } from "./chain.js";
-import { REPO_ROOT, type Role } from "./env.js";
+import { REPO_ROOT, childEnv, type Role } from "./env.js";
 import type { FaultProxy } from "./fault-proxy.js";
 import type { Narrator } from "./narrate.js";
 import { fixtureWorkspace, preparedFailureWorkspace } from "./workspace.js";
@@ -117,15 +117,13 @@ export async function runDemo(cfg: DemoConfig): Promise<void> {
       cwd: REPO_ROOT,
       encoding: "utf8",
       timeout: 300_000,
-      env: {
-        PATH: process.env.PATH ?? "",
-        HOME: process.env.HOME ?? "",
+      env: childEnv({
         EVALUATOR_PRIVATE_KEY: cfg.evaluator.privateKey,
         EVALUATOR_ADDRESS: cfg.evaluator.address,
         RESOLUTION_WARRANTY_REGISTRY_ADDRESS: registry,
         ARBITRUM_SEPOLIA_RPC_URL: cfg.rpcUrl,
         LEMMA_API_URL: cfg.serverUrl,
-      },
+      }),
     });
     if (r.status !== 0) throw new Error(`evaluator CLI failed: ${narr.scrubber.scrub((r.stderr || r.stdout).slice(-1000))}`);
     const line = r.stdout.trim().split("\n").at(-1) ?? "{}";

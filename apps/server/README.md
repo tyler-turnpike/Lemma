@@ -108,6 +108,7 @@ Tests require no environment values.
 - Settlement timeouts are not reconciled automatically. A facilitator that broadcast but timed out leaves the resolution `pending`, and a retry signs a new authorization. Single replica only: the purchase lock, the unrecorded-settlement retry map and the facilitator's pending-settlement store are all in process memory.
 - No chain-event indexer yet. `chain_event_cursors` exists for it.
 - Rate limiting is per process and fixed-window.
+- `@x402/evm` 2.27.0 leaves its eager asset-contract `eth_getCode` promise unobserved when verification returns early; a failing RPC then produced an unhandled rejection that killed the process. The facilitator signer's `getCode` now retries and never rejects (verification fails closed instead), and the entry point logs any other unhandled rejection rather than exiting (`test/facilitator-rpc.test.ts`).
 
 ## Completion criteria
 

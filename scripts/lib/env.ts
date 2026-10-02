@@ -97,3 +97,36 @@ export class Scrubber {
     return out;
   }
 }
+
+/**
+ * Non-secret process settings children need to reach the network the same way this process
+ * does: proxy variables, extra CA bundles (TLS-intercepting proxies) and Node flags. Spawned
+ * servers, bridges and CLIs get these plus their explicit role variables, nothing else.
+ */
+const NETWORK_ENV = [
+  "PATH",
+  "HOME",
+  "TMPDIR",
+  "LANG",
+  "HTTP_PROXY",
+  "HTTPS_PROXY",
+  "NO_PROXY",
+  "http_proxy",
+  "https_proxy",
+  "no_proxy",
+  "NODE_EXTRA_CA_CERTS",
+  "NODE_USE_ENV_PROXY",
+  "NODE_OPTIONS",
+  "SSL_CERT_FILE",
+  "SSL_CERT_DIR",
+] as const;
+
+export function childEnv(extra: Record<string, string | undefined> = {}): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const k of NETWORK_ENV) {
+    const v = process.env[k];
+    if (v !== undefined && v !== "") out[k] = v;
+  }
+  for (const [k, v] of Object.entries(extra)) if (v !== undefined) out[k] = v;
+  return out;
+}

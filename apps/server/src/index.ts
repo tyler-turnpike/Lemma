@@ -29,6 +29,12 @@ export async function main(env: Record<string, string | undefined> = process.env
     process.exit(1);
   }
   const logger = createLogger({ secrets: config.secrets });
+  // A payment server must not die mid-settlement because a dependency left a promise
+  // unobserved (see payments/facilitator.ts). Log it loudly and keep serving; real failures
+  // still surface through the awaited code paths.
+  process.on("unhandledRejection", (reason) => {
+    logger.error("unhandled promise rejection", { error: reason instanceof Error ? reason.message : String(reason) });
+  });
 
   let repo: Repository;
   if (config.databaseUrl !== undefined) {

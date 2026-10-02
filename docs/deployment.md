@@ -128,4 +128,6 @@ The Docker image (`ops/Dockerfile`) builds every workspace and the Vite dashboar
 
 Never test with Anvil's default dev keys on a real network. They are public, and on Arbitrum Sepolia those addresses already carry EIP-7702 delegation code from sweeper bots. The fork scripts clear that code locally.
 
+The scripts start the server, bridge and evaluator CLI as child processes with an explicit environment: role variables plus the non-secret network settings (`HTTP(S)_PROXY`, `NO_PROXY`, `NODE_EXTRA_CA_CERTS`, `NODE_OPTIONS`, `SSL_CERT_FILE`). `demo:testnet` preflight checks that a child process can reach the RPC. On failure both demo scripts keep their scratch directory and print the server exit status and the server and bridge log tails.
+
 Fork runs and live runs both write `contracts/broadcast/Deploy.s.sol/421614/run-latest.json` (gitignored); `testnet-setup` copies the deploy transaction hash into the deployment record immediately after deploying.

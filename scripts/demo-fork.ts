@@ -32,7 +32,7 @@ import { runDemo } from "./lib/demo.js";
 import { PUBLIC_ARBITRUM_SEPOLIA_RPC, Scrubber, type Role } from "./lib/env.js";
 import { startFaultProxy } from "./lib/fault-proxy.js";
 import { FORK_EXPLORER, Narrator } from "./lib/narrate.js";
-import { requireBuilt, startServer, startThrowawayPostgres } from "./lib/server.js";
+import { failureReport, requireBuilt, startServer, startThrowawayPostgres, type RunningServer } from "./lib/server.js";
 import { runSetup } from "./lib/setup-flow.js";
 
 const role = (name: keyof typeof ANVIL_DEV_KEYS): Role => {
@@ -49,6 +49,8 @@ async function main(): Promise<void> {
   const narr = new Narrator(scrubber, FORK_EXPLORER);
   const workDir = mkdtempSync(join(tmpdir(), "lemma-demo-fork-"));
   const cleanups: Array<() => void | Promise<void>> = [];
+  let server: RunningServer | null = null;
+  let passed = false;
 
   const roles = {
     deployer: role("deployer"),
@@ -98,7 +100,7 @@ async function main(): Promise<void> {
     // ------------------------------------------------------------ server
     const pg = args.includes("--memory") ? null : await startThrowawayPostgres();
     if (pg !== null) cleanups.push(() => pg.stop());
-    const server = await startServer(
+    server = await startServer(
       {
         NODE_ENV: "development",
         ...(pg !== null ? { DATABASE_URL: pg.url } : {}),
@@ -113,7 +115,8 @@ async function main(): Promise<void> {
       },
       workDir,
     );
-    cleanups.push(() => server.stop());
+    const srv = server;
+    cleanups.push(() => srv.stop());
     narr.kv("server", `${server.url} (node apps/server/dist/index.js, ${pg !== null ? "Postgres 16 throwaway cluster" : "in-memory repository"})`);
 
     const proxy = await startFaultProxy(server.url);
@@ -121,7 +124,7 @@ async function main(): Promise<void> {
 
     // ------------------------------------------------------------ demo
     narr.banner("Demo: a coding agent using lemma-mcp");
-    try {
+    {
       await runDemo({
         mode: "fork",
         narr,
@@ -137,12 +140,11 @@ async function main(): Promise<void> {
         timeTravel: (s) => timeTravel(c.pub, s),
         faultProxy: proxy,
       });
-    } catch (error) {
-      process.stderr.write(`\n--- server log tail ---\n${scrubber.scrub(server.tail(40))}\n`);
-      throw error;
     }
     narr.banner("DEMO PASSED");
+    passed = true;
   } finally {
+    if (!passed) process.stderr.write(`\n${failureReport(workDir, server, (s) => scrubber.scrub(s))}\n`);
     for (const fn of cleanups.reverse()) {
       try {
         await fn();
@@ -150,7 +152,7 @@ async function main(): Promise<void> {
         /* best effort */
       }
     }
-    if (args.includes("--keep")) process.stdout.write(`kept ${workDir}\n`);
+    if (args.includes("--keep") || !passed) process.stdout.write(`kept ${workDir}\n`);
     else rmSync(workDir, { recursive: true, force: true });
   }
 }

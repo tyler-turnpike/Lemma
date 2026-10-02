@@ -8,6 +8,7 @@ import { join } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport, getDefaultEnvironment } from "@modelcontextprotocol/sdk/client/stdio.js";
 
+import { childEnv } from "./env.js";
 import { BRIDGE_ENTRY } from "./server.js";
 
 export type BridgeEnv = {
@@ -37,7 +38,7 @@ export class BridgeSession {
     const transport = new StdioClientTransport({
       command: process.execPath,
       args: [BRIDGE_ENTRY],
-      env: { ...getDefaultEnvironment(), ...(env as Record<string, string>) },
+      env: { ...getDefaultEnvironment(), ...childEnv(env) },
       stderr: "pipe",
     });
     const logFile = join(logDir, "bridge.log");
