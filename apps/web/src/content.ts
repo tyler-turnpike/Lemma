@@ -1,5 +1,5 @@
 // Every user-facing string on the landing page lives here.
-// Bracketed values are placeholders until the pitch wording is decided.
+// First-draft pitch copy; claims must stay within docs/demo-script.md "Claims to avoid".
 
 export interface NavLink {
   readonly label: string;
@@ -25,13 +25,13 @@ export const nav = {
     { label: "Status", href: "#" },
     { label: "GitHub", href: "#" },
   ] satisfies readonly NavLink[],
-  cta: { label: "[Get started]", href: "#" } satisfies NavLink,
+  cta: { label: "Get started", href: "#" } satisfies NavLink,
 } as const;
 
 export const hero = {
-  eyebrow: "[Meet Lemma]",
-  positioning: "[One-line positioning]",
-  headline: ["[Headline line one,]", "[headline line two]"],
+  eyebrow: "Meet Lemma",
+  positioning: "Verified integration work for coding agents",
+  headline: ["Stop paying agents", "to rediscover solved work"],
   // Illustrative values only. What each ruler represents is an open copy decision.
   rulers: {
     top: { start: 1_200_000, perTick: 25_000, labelEvery: 4, speed: 22, unit: "tokens" },
@@ -40,34 +40,34 @@ export const hero = {
 } as const;
 
 export const mock = {
-  label: "[Section label]",
-  headline: ["[Product headline,]", "[second line]"],
-  lede: "[Short paragraph describing what the visitor is watching: an agent asking Lemma before it writes code.]",
+  label: "In use",
+  headline: ["Ask before building,", "pay only when it fits"],
+  lede: "Before writing code, the agent asks Lemma whether verified prior work fits this repository. The preview is free. If it fits, the bridge pays a few cents in USDC, applies the patch and runs the pinned tests.",
   replay: "Replay",
 } as const satisfies { label: string; headline: readonly [string, string]; lede: string; replay: string };
 
 export const guarantees = {
-  label: "[Guarantees]",
-  headline: ["[Guarantees headline,]", "[second line]"],
-  lede: "[Short paragraph: what Lemma guarantees before, during and after an agent pays.]",
+  label: "Guarantees",
+  headline: ["Recourse, not reputation,", "on every purchase"],
+  lede: "Your code stays local, your agent cannot overspend, and a failed adoption costs the provider, not you.",
   cards: [
-    { key: "privacy", title: "[Privacy]", body: "[Two lines on sending a repository profile, never source code.]", href: "#" },
-    { key: "spend", title: "[Spend caps]", body: "[Two lines on per-resolution and daily limits enforced outside the model.]", href: "#" },
-    { key: "warranty", title: "[Bonded warranty]", body: "[Two lines on eligible failures being refunded from the provider bond.]", href: "#" },
+    { key: "privacy", title: "Your source stays local", body: "The bridge sends an allowlisted profile: languages, versions and a lockfile digest. Never your code.", href: "#" },
+    { key: "spend", title: "Caps the model can't move", body: "Per-resolution and daily limits are checked in code before anything is signed. No prompt can raise them.", href: "#" },
+    { key: "warranty", title: "Bonded warranty", body: "Each paid resolution reserves provider bond. An evaluator-confirmed failure within 72 hours is refunded from it.", href: "#" },
   ],
   learnMore: "Learn more",
 } as const;
 
 export const closing = {
-  headline: ["[Closing line one,]", "[closing line two]"],
-  cta: { label: "[Get started]", href: "#" } satisfies NavLink,
+  headline: ["Stop rediscovering,", "start reusing"],
+  cta: { label: "Install the bridge", href: "#" } satisfies NavLink,
 } as const;
 
 export const footer = {
   columns: [
-    { title: "[Product]", links: [{ label: "[Catalog]", href: "#" }, { label: "[Status]", href: "#" }] },
-    { title: "[Developers]", links: [{ label: "[Docs]", href: "#" }, { label: "[GitHub]", href: "#" }] },
-    { title: "[Project]", links: [{ label: "[Benchmark]", href: "#" }, { label: "[Security model]", href: "#" }] },
+    { title: "Product", links: [{ label: "Catalog", href: "#" }, { label: "Status", href: "#" }] },
+    { title: "Developers", links: [{ label: "Docs", href: "#" }, { label: "GitHub", href: "#" }] },
+    { title: "Project", links: [{ label: "Benchmark", href: "#" }, { label: "Security model", href: "#" }] },
   ],
   copyright: "© 2026 Lemma",
   network: "Runs on Arbitrum Sepolia testnet",
