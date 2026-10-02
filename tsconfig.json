@@ -6,6 +6,7 @@
     { "path": "./packages/benchmark" },
     { "path": "./apps/server" },
     { "path": "./apps/bridge" },
-    { "path": "./apps/web" }
+    { "path": "./apps/web" },
+    { "path": "./scripts" }
   ]
 }

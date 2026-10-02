@@ -80,7 +80,7 @@ The initial scaffold does not require environment variables for compilation or t
 - `npm run dev:server`: Watch the server scaffold.
 - `npm run dev:bridge`: Watch the local bridge scaffold.
 - `npm run dev:web`: Start the Vite development server.
-- `npm run benchmark`: Run the compiled benchmark entrypoint after the harness exists.
+- `npm run benchmark -- --plan | --smoke | --run --confirm | --report`: Print, smoke-test, run, or aggregate the frozen Codex SDK benchmark (see `docs/benchmark-protocol.md`).
 - `npm run contracts:build`: Build the isolated Foundry package.
 - `npm run contracts:test`: Run Foundry tests.
 

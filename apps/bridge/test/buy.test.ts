@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { SpendLedger } from "../src/ledger.js";
 import { StateStore } from "../src/state.js";
-import { FakeLemmaServer, buyer, copyFixture, loadRelease, makeBridge, provider, tempDir, testEnv } from "./helpers.js";
+import { FakeLemmaServer, REGISTRY, buyer, copyFixture, loadRelease, makeBridge, provider, tempDir, testEnv } from "./helpers.js";
 
 async function setup(options: ConstructorParameters<typeof FakeLemmaServer>[0] = {}) {
   const release = await loadRelease();
@@ -51,6 +51,60 @@ describe("lemma_buy_resolution flow", () => {
     expect(server.payments).toBe(1);
     expect(server.requests.filter((r) => (r as { tool: string }).tool === "lemma_recover_resolution").length).toBeGreaterThanOrEqual(1);
     expect((await new SpendLedger(stateDir).get(preview.previewId))?.status).toBe("settled");
+  });
+
+  it("a payment rejected by x402 verification releases the spend and can be retried", async () => {
+    const { server, env, stateDir } = await setup({ mode: "reject-payment" });
+    const { bridge } = makeBridge(server, env);
+    const { preview } = await bridge.preview("x402-paywall-mcp-server");
+    const err = await bridge.buy(preview.previewId).then(
+      () => null,
+      (e: unknown) => e as { code: string; message: string },
+    );
+    expect(err?.code).toBe("payment");
+    expect(err?.message).toMatch(/insufficient_balance.*no funds moved and the local spend was released.*Fund the buyer wallet/);
+    expect(server.payments).toBe(0);
+    // Exactly one recovery probe confirmed nothing settled; no retry loop.
+    expect(server.requests.filter((r) => (r as { tool: string }).tool === "lemma_recover_resolution")).toHaveLength(1);
+    const ledger = new SpendLedger(stateDir);
+    expect(await ledger.get(preview.previewId)).toBeNull();
+    expect(await ledger.spentOn(new Date())).toBe(0n);
+
+    // Once the wallet is funded, the same preview is bought normally, paying once.
+    server.options = { mode: "normal" };
+    const result = await makeBridge(server, env).bridge.buy(preview.previewId);
+    expect(result.status).toBe("purchased");
+    expect(server.payments).toBe(1);
+    expect((await ledger.get(preview.previewId))?.status).toBe("settled");
+  });
+
+  it("refuses before paying when the server signs vouchers for a different registry", async () => {
+    const { server, env, stateDir } = await setup();
+    const other = "0x00000000000000000000000000000000000000bb";
+    const { bridge } = makeBridge(server, env, [], { serverStatus: async () => ({ registry: other }) });
+    const { preview } = await bridge.preview("x402-paywall-mcp-server");
+    await expect(bridge.buy(preview.previewId)).rejects.toMatchObject({ code: "config", message: expect.stringContaining(other) });
+    expect(server.payments).toBe(0);
+    expect(server.probes).toBe(0);
+    expect(await new SpendLedger(stateDir).get(preview.previewId)).toBeNull();
+
+    // Same registry (any case) or an unreachable status endpoint does not block the purchase.
+    const ok = makeBridge(server, env, [], { serverStatus: async () => ({ registry: REGISTRY.toUpperCase().replace("0X", "0x") }) });
+    expect((await ok.bridge.buy(preview.previewId)).status).toBe("purchased");
+    const { bridge: offline } = makeBridge(server, env, [], { serverStatus: async () => null });
+    const p2 = await offline.preview("x402-paywall-mcp-server");
+    expect((await offline.buy(p2.preview.previewId)).status).toBe("purchased");
+  });
+
+  it("a settlement failure is ambiguous: the spend is kept and recovery is used, never a second payment", async () => {
+    const { server, env, stateDir } = await setup({ mode: "settlement-failed" });
+    const { bridge } = makeBridge(server, env);
+    const { preview } = await bridge.preview("x402-paywall-mcp-server");
+    await expect(bridge.buy(preview.previewId)).rejects.toMatchObject({ code: "recovery" });
+    expect((await new SpendLedger(stateDir).get(preview.previewId))?.status).toBe("authorized");
+    server.options = { mode: "normal" };
+    await expect(makeBridge(server, env).bridge.buy(preview.previewId)).rejects.toMatchObject({ code: "recovery" });
+    expect(server.payments).toBe(0);
   });
 
   it("after a lost response and failed recovery, a restarted bridge recovers instead of re-paying", async () => {

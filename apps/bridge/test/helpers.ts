@@ -156,8 +156,14 @@ export type FakeServerOptions = {
   payTo?: string;
   network?: string;
   asset?: string;
-  /** "lose-response": settle, then never answer the paid call. */
-  mode?: "normal" | "lose-response";
+  /**
+   * "lose-response": settle, then never answer the paid call.
+   * "reject-payment": answer the paid call with an x402 PaymentRequired (verification failed).
+   * "settlement-failed": answer the paid call with "Payment settlement failed: ..." (ambiguous).
+   */
+  mode?: "normal" | "lose-response" | "reject-payment" | "settlement-failed";
+  /** Error string used by reject-payment / settlement-failed. */
+  rejectReason?: string;
   recoverEnabled?: boolean;
   acceptance?: AcceptanceRecipe;
   /** Error text returned by lemma_preview (to test scrubbing). */
@@ -254,6 +260,11 @@ export class FakeLemmaServer {
         signature: payment.payload.signature,
       });
       if (signerAddr.toLowerCase() !== args.buyer.toLowerCase()) return fail("payment signature invalid");
+      if (this.options.mode === "reject-payment" || this.options.mode === "settlement-failed") {
+        const reason = this.options.rejectReason ?? (this.options.mode === "reject-payment" ? "invalid_exact_evm_insufficient_balance" : "Payment settlement failed: transaction_failed");
+        const pr = { ...this.paymentRequired(preview), error: reason };
+        return { isError: true, structuredContent: pr, content: [{ type: "text" as const, text: JSON.stringify(pr) }] };
+      }
       this.payments += 1;
       const purchase = await makePurchase({
         preview,
@@ -314,7 +325,7 @@ export function testEnv(stateDir: string, workspace: string, extra: Record<strin
 }
 
 /** A fully wired bridge against the fake server; a new call simulates a process restart. */
-export function makeBridge(server: FakeLemmaServer, env: Record<string, string>, logs: string[] = []) {
+export function makeBridge(server: FakeLemmaServer, env: Record<string, string>, logs: string[] = [], extra: Partial<ConstructorParameters<typeof Bridge>[0]> = {}) {
   const loaded = loadConfig(env);
   const scrub = createScrubber(loaded.secrets);
   const log = createLogger(scrub, (l) => logs.push(l));
@@ -333,6 +344,7 @@ export function makeBridge(server: FakeLemmaServer, env: Record<string, string>,
     recoverAttempts: 2,
     recoverDelayMs: 10,
     acceptanceEnv: env as NodeJS.ProcessEnv,
+    ...extra,
   });
   return { bridge, activator, config: loaded.config, scrub, log };
 }

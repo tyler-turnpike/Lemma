@@ -110,5 +110,9 @@ describe("runAcceptance", () => {
 
   it("parses vitest totals", () => {
     expect(summarizeVitestOutput(" Tests  1 failed | 4 passed (5)")).toEqual({ passed: 4, failed: 1, skipped: 0 });
+    // Failing runs print a "Failed Tests N" banner before the summary line.
+    const failing = "⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯\n FAIL  test/a.test.ts > x\n\n Test Files  1 failed (1)\n      Tests  4 failed (4)\n   Start at  19:47:04\n";
+    expect(summarizeVitestOutput(failing)).toEqual({ passed: 0, failed: 4, skipped: 0 });
+    expect(summarizeVitestOutput("\x1b[2m Tests \x1b[22m 2 passed | 1 skipped (3)")).toEqual({ passed: 2, failed: 0, skipped: 1 });
   });
 });

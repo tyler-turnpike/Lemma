@@ -42,6 +42,33 @@ export class RemoteToolError extends BridgeError {
   }
 }
 
+/**
+ * The server answered a *paid* request with an x402 PaymentRequired result. `@x402/mcp` does this
+ * when verification rejects the payment (e.g. insufficient balance) before anything is settled,
+ * and also when settlement itself fails ("Payment settlement failed: ..."), which is ambiguous.
+ */
+export class PaymentRejectedError extends BridgeError {
+  constructor(
+    readonly reason: string,
+    /** True when the rejection came from the settlement step (funds may have moved). */
+    readonly duringSettlement: boolean,
+  ) {
+    super("payment", `server rejected the x402 payment${duringSettlement ? " during settlement" : " before settlement"}: ${reason.slice(0, 300)}`);
+  }
+}
+
+/** Returns the rejection when `text` is an x402 PaymentRequired body, else null. */
+export function paymentRejection(text: string): PaymentRejectedError | null {
+  try {
+    const parsed = JSON.parse(text) as { x402Version?: unknown; accepts?: unknown; error?: unknown };
+    if (typeof parsed.x402Version !== "number" || !Array.isArray(parsed.accepts)) return null;
+    const reason = typeof parsed.error === "string" && parsed.error.length > 0 ? parsed.error : "payment rejected";
+    return new PaymentRejectedError(reason, /^Payment settlement failed/i.test(reason));
+  } catch {
+    return null;
+  }
+}
+
 function parseServerError(text: string): { code: string | null; message: string } {
   try {
     const parsed = JSON.parse(text) as { error?: { code?: unknown; message?: unknown } };
@@ -139,6 +166,11 @@ export class McpRemoteLemma implements RemoteLemma {
     const client = await this.open(guard);
     try {
       const result = await client.callTool(PURCHASE_TOOL, { ...input }, { timeout: timeoutMs });
+      if (result.isError === true && result.paymentMade) {
+        const first = result.content.find((c) => c.type === "text");
+        const rejection = paymentRejection(typeof first?.["text"] === "string" ? first["text"] : "");
+        if (rejection !== null) throw rejection;
+      }
       return {
         payload: parseToolJson(PURCHASE_TOOL, result),
         paymentMade: result.paymentMade,

@@ -18,9 +18,13 @@
     "dev:server": "npm run dev -w @lemma/server",
     "dev:bridge": "npm run dev -w @lemma/bridge",
     "dev:web": "npm run dev -w @lemma/web",
-    "benchmark": "npm run benchmark -w @lemma/benchmark",
+    "benchmark": "npm run benchmark -w @lemma/benchmark --",
     "contracts:build": "cd contracts && forge build",
-    "contracts:test": "cd contracts && FOUNDRY_OFFLINE=true forge test"
+    "contracts:test": "cd contracts && FOUNDRY_OFFLINE=true forge test",
+    "demo:fork": "tsc -b && tsx scripts/demo-fork.ts",
+    "demo:testnet": "tsc -b && tsx scripts/demo-testnet.ts",
+    "testnet:setup": "tsc -b && tsx scripts/testnet-setup.ts",
+    "evaluator": "tsx scripts/evaluator.ts"
   },
   "devDependencies": {
     "@types/node": "26.6.2",

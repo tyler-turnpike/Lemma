@@ -28,7 +28,7 @@ x402 remains the payment rail. The contract provides bounded recourse after paym
 
 ## Status
 
-`src/ResolutionWarrantyRegistry.sol` is implemented and tested (unit, fuzz, invariant, fixed EIP-712 vectors). Not yet deployed to Arbitrum Sepolia.
+`src/ResolutionWarrantyRegistry.sol` is implemented and tested (unit, fuzz, invariant, fixed EIP-712 vectors). Not yet deployed to Arbitrum Sepolia; `npm run demo:fork` rehearses the deployment on a fork.
 
 ## Public interface
 
@@ -60,7 +60,7 @@ Git submodules in `lib/` (pins in `foundry.lock`): forge-std `v1.17.0`, OpenZepp
 
 Foundry uses `ARBITRUM_SEPOLIA_RPC_URL`.
 
-- `script/Deploy.s.sol:Deploy`: `DEPLOYER_PRIVATE_KEY`, `USDC_ADDRESS`, `REGISTRY_ADMIN_ADDRESS`, optional `EXPECTED_CHAIN_ID` (default 421614), optional `SOURCE_COMMIT`. On chain 421614 the USDC address must be `0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d`; the token must have 6 decimals. Writes `deployments/<chainId>.json` (no secrets).
+- `script/Deploy.s.sol:Deploy`: `DEPLOYER_PRIVATE_KEY`, `USDC_ADDRESS`, `REGISTRY_ADMIN_ADDRESS`, optional `EXPECTED_CHAIN_ID` (default 421614), optional `SOURCE_COMMIT`, optional `DEPLOYMENT_FILE` (default `deployments/<chainId>.json`; fork rehearsals use `deployments/fork-421614.json`, gitignored). On chain 421614 the USDC address must be `0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d`; the token must have 6 decimals. Writes `deployments/<chainId>.json` (no secrets).
 - `script/RegisterRelease.s.sol:RegisterRelease`: `ADMIN_PRIVATE_KEY` (falls back to `DEPLOYER_PRIVATE_KEY`), `REGISTRY_ADDRESS`, `RELEASE_ID` (bytes32) or `RELEASE_KEY` (string, keccak256-hashed), `PROVIDER_ADDRESS`, `EVALUATOR_ADDRESS`, `RELEASE_PRICE` (6-decimal units), optional `CLAIM_WINDOW` (seconds).
 - `script/RegisterRelease.s.sol:DepositBond`: `PROVIDER_PRIVATE_KEY`, `REGISTRY_ADDRESS`, `RELEASE_ID` or `RELEASE_KEY`, `BOND_AMOUNT`.
 
@@ -73,7 +73,7 @@ From the Lemma root:
 
 Or directly from `contracts/`: `forge test` (add `-vv --match-contract VectorsTest` to print the vectors).
 
-Deploy:
+Operators normally use `npm run testnet:setup` (root `scripts/testnet-setup.ts`), which runs the Deploy script and then registers and bonds both catalog releases; see `docs/deployment.md`. Manual equivalent:
 
 ```sh
 cd contracts

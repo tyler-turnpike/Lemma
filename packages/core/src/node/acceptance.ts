@@ -97,7 +97,10 @@ function runStep(cwd: string, argv: string[], env: NodeJS.ProcessEnv, timeoutMs:
 
 /** Best-effort extraction of vitest totals from runner output (for Adoption Receipts). */
 export function summarizeVitestOutput(output: string): { passed: number; failed: number; skipped: number } {
-  const line = /Tests\s+([^\n]*)/.exec(output.replace(/\x1b\[[0-9;]*m/g, ""))?.[1] ?? "";
+  // The summary is the last line that starts with "Tests" followed by a count; failure output
+  // also contains banners such as "Failed Tests 4" that must not be mistaken for it.
+  const lines = [...output.replace(/\x1b\[[0-9;]*m/g, "").matchAll(/^\s*Tests\s+(\d[^\n]*)$/gm)];
+  const line = lines.at(-1)?.[1] ?? "";
   const n = (label: string) => Number(new RegExp(`(\\d+) ${label}`).exec(line)?.[1] ?? 0);
   return { passed: n("passed"), failed: n("failed"), skipped: n("skipped") };
 }

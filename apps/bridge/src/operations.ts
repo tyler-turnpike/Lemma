@@ -23,7 +23,7 @@ import type { SpendLedger } from "./ledger.js";
 import { PaymentGuard, precheckSpend, type PaymentExpectation } from "./policy.js";
 import { buildWorkspaceProfile, type ProfileFileReader } from "./profile.js";
 import type { Logger } from "./redaction.js";
-import { RemoteToolError, type RemoteLemma } from "./remote.js";
+import { PaymentRejectedError, RemoteToolError, type RemoteLemma } from "./remote.js";
 import type { StateStore, StoredResolution } from "./state.js";
 import { verifyPurchase } from "./verify.js";
 
@@ -43,6 +43,12 @@ export type BridgeDeps = {
   profileReader?: ProfileFileReader;
   /** Environment for acceptance runs (only allowlisted names are forwarded by core). */
   acceptanceEnv?: NodeJS.ProcessEnv;
+  /**
+   * Reads the server's public configuration (GET /api/v1/status). Used only to refuse a purchase
+   * before paying when the server signs vouchers for a different registry. Returns null when
+   * unavailable, in which case the post-payment voucher check still applies.
+   */
+  serverStatus?: () => Promise<{ registry: string | null } | null>;
 };
 
 export type PreviewResult = {
@@ -183,6 +189,8 @@ export class Bridge {
     const reasons = precheckSpend(exp, await ledger.spentOn(now), now);
     if (reasons.length > 0) throw new BridgeError("policy", "purchase refused by local spend policy", reasons);
 
+    await this.assertSameRegistry();
+
     const guard = new PaymentGuard(exp, ledger, this.clock);
     let payload: unknown;
     let status: BuyResult["status"] = "purchased";
@@ -199,6 +207,23 @@ export class Bridge {
         } else {
           throw error instanceof BridgeError ? error : new BridgeError("remote", `purchase failed before any payment was signed: ${errorMessage(error)}`);
         }
+      } else if (error instanceof PaymentRejectedError && !error.duringSettlement) {
+        // The server's x402 verification refused the signed authorization (e.g. insufficient
+        // USDC balance): nothing was settled. Confirm with one recovery probe, then release the
+        // local spend so the buyer can fix the cause and buy again without hitting the cap.
+        const confirmed = await this.deps.remote.recover(args, this.deps.recoverTimeoutMs ?? 30_000).catch(() => null);
+        if (confirmed !== null && (confirmed as { found?: unknown }).found !== false) {
+          payload = confirmed;
+          status = "recovered";
+        } else {
+          const voided = confirmed !== null && (await ledger.voidAuthorization(previewId));
+          log.warn("payment rejected before settlement", { previewId, reason: error.reason, spendReleased: voided });
+          const next = /insufficient_balance/.test(error.reason) ? "Fund the buyer wallet with Arbitrum Sepolia USDC, then call" : "Fix the cause and call";
+          throw new BridgeError(
+            "payment",
+            `the server rejected the payment before settlement (${error.reason}); no funds moved${voided ? " and the local spend was released" : ""}. ${next} lemma_buy_resolution again`,
+          );
+        }
       } else {
         // A payment may have been sent. Never re-pay: recover the settled resolution.
         log.warn("purchase response lost after payment authorization; recovering", { previewId, error: errorMessage(error) });
@@ -207,6 +232,20 @@ export class Bridge {
       }
     }
     return this.finishPurchase(payload, preview, status);
+  }
+
+  /** Refuses before payment when the server's voucher registry differs from the local one. */
+  private async assertSameRegistry(): Promise<void> {
+    const local = this.deps.config.registryAddress;
+    if (local === null || this.deps.serverStatus === undefined) return;
+    const status = await this.deps.serverStatus().catch(() => null);
+    const remote = status?.registry ?? null;
+    if (remote !== null && remote.toLowerCase() !== local.toLowerCase()) {
+      throw new BridgeError(
+        "config",
+        `the Lemma server signs warranty vouchers for registry ${remote}, but this bridge is configured with RESOLUTION_WARRANTY_REGISTRY_ADDRESS=${local}; refusing to pay. Fix the bridge configuration`,
+      );
+    }
   }
 
   private async recoverWithRetry(args: { previewId: string; buyer: string }, cause: string | null): Promise<unknown> {

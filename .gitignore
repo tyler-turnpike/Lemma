@@ -15,6 +15,8 @@ coverage/
 
 packages/benchmark/runs/*
 !packages/benchmark/runs/.gitkeep
+# Benchmark aggregate: published only from a real, frozen run (npm run benchmark -- --report)
+packages/benchmark/published/
 
 contracts/cache/
 contracts/out/
@@ -25,3 +27,6 @@ contracts/broadcast/
 *.sqlite3
 
 .railway/
+
+# Fork rehearsal deployment records (scripts/demo-fork.ts)
+contracts/deployments/fork-*.json

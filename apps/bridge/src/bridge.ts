@@ -16,7 +16,20 @@ export type AssembleOptions = {
   cwd?: string;
   transportFactory?: TransportFactory;
   logSink?: (line: string) => void;
+  serverStatus?: () => Promise<{ registry: string | null } | null>;
 };
+
+/** GET {apiUrl}/api/v1/status (public, read-only); null when unreachable or malformed. */
+export async function fetchServerStatus(apiUrl: string, timeoutMs = 5_000): Promise<{ registry: string | null } | null> {
+  try {
+    const res = await fetch(`${apiUrl}/api/v1/status`, { signal: AbortSignal.timeout(timeoutMs), headers: { accept: "application/json" } });
+    if (!res.ok) return null;
+    const body = (await res.json()) as { registry?: unknown };
+    return { registry: typeof body.registry === "string" && /^0x[0-9a-fA-F]{40}$/.test(body.registry) ? body.registry : null };
+  } catch {
+    return null;
+  }
+}
 
 /** Wires config, wallet, remote client, ledger, store and the MCP server together. */
 export function assembleBridge(options: AssembleOptions = {}) {
@@ -36,6 +49,7 @@ export function assembleBridge(options: AssembleOptions = {}) {
     activator: buyer === null ? null : new ViemWarrantyActivator(buyer, config.registryAddress, config.rpcUrl),
     log,
     acceptanceEnv: env as NodeJS.ProcessEnv,
+    serverStatus: options.serverStatus ?? (() => fetchServerStatus(config.apiUrl)),
   });
   const server = createBridgeServer(bridge, scrub, log);
   return { config, buyerAddress: buyer?.address ?? null, bridge, server, scrub, log };

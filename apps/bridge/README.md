@@ -31,9 +31,11 @@ The bridge is what turns a hosted resolution service into a useful agent capabil
 
 Implemented. `lemma-mcp` is a stdio MCP server exposing four tools. It talks to the hosted
 endpoint at `${LEMMA_API_URL}/mcp` (Streamable HTTP) as an x402 MCP client, per
-[docs/interfaces.md](../../docs/interfaces.md). Tested against an in-process fake Lemma
-server and fake x402 layer (`apps/bridge/test`); not yet exercised against the live
-server and chain.
+[docs/interfaces.md](../../docs/interfaces.md). Unit-tested against an in-process fake Lemma
+server and fake x402 layer (`apps/bridge/test`), and exercised end to end by
+`npm run demo:fork` (root `scripts/demo-fork.ts`): the built bin is spawned over stdio with
+the MCP SDK client against the real server, real x402 settlement and the real registry on an
+Anvil fork of Arbitrum Sepolia, including an injected dropped paid response.
 
 ## MCP tools
 
@@ -60,6 +62,15 @@ Every tool returns a short text summary plus `structuredContent`. Failures retur
   approval returns. After that, a timeout, dropped connection, or error never leads to a
   second payment. The bridge calls `lemma_recover_resolution` instead, now and on any later
   `lemma_buy_resolution` for that preview.
+- Before paying, the bridge reads the server's public `GET ${LEMMA_API_URL}/api/v1/status` and
+  refuses (`config` error) when the server signs vouchers for a different registry than
+  `RESOLUTION_WARRANTY_REGISTRY_ADDRESS`. If the endpoint is unreachable the purchase proceeds
+  and the post-payment voucher check still applies.
+- If the server answers the paid call with an x402 PaymentRequired whose error is a
+  verification failure (for example `invalid_exact_evm_insufficient_balance`), nothing was
+  settled: after one recovery probe confirms it, the bridge removes the authorized ledger entry
+  and returns a `payment` error saying how to fix it. A `Payment settlement failed: ...`
+  answer is ambiguous and keeps the spend, so later calls recover instead of paying again.
 - The delivered resolution must pass schema validation, `bundleDigest(bundle) ==
   resolution.payloadDigest == voucher.payloadDigest`, and bundle integrity. The voucher signer
   is recovered from the EIP-712 signature and must equal `LEMMA_PROVIDER_ADDRESS`. Buyer, amount,

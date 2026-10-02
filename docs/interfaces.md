@@ -52,3 +52,12 @@ Self-hosted at `/facilitator/supported`, `/facilitator/verify` and `/facilitator
 | `lemma_buy_resolution` | Checks the spend policy locally, then pays through x402, verifies the payload digest and voucher signer, activates the warranty on chain, and stores the resolution locally. Recovers automatically after a lost response. |
 | `lemma_apply_resolution` | `applyBundle`, with `dryRun` defaulting to true |
 | `lemma_verify_adoption` | `runAcceptance`, then signs an `AdoptionReceipt` (EIP-191 over `adoptionReceiptDigest`) and submits it |
+
+Bridge-side rules that depend on the server:
+
+- The bridge sends `buyer` = its own wallet address and pays from the same wallet, so the server's `payer_mismatch` check always holds for a correct bridge.
+- Before paying it reads `GET /api/v1/status` and refuses when `registry` differs from its `RESOLUTION_WARRANTY_REGISTRY_ADDRESS` (otherwise the voucher would be rejected only after payment).
+- A paid call answered with an x402 PaymentRequired means verification refused the payment (no settlement) unless its `error` starts with `Payment settlement failed`, which is treated as ambiguous and handled by recovery.
+- `already_settled` before payment, or any failure after a payment was authorized, leads to `lemma_recover_resolution`, never a second payment.
+
+The whole contract is exercised end to end by `npm run demo:fork`.

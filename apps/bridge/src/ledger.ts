@@ -83,6 +83,20 @@ export class SpendLedger {
     });
   }
 
+  /**
+   * Removes an authorization that provably never settled (the server rejected the payment
+   * before settlement and has no settled resolution). Settled entries are never removed.
+   */
+  async voidAuthorization(previewId: string): Promise<boolean> {
+    return this.serialize(async () => {
+      const entries = await this.read();
+      const entry = entries.find((e) => e.previewId === previewId);
+      if (entry === undefined || entry.status !== "authorized") return false;
+      await writeJsonAtomic(this.file, { schemaVersion: "1", entries: entries.filter((e) => e !== entry) });
+      return true;
+    });
+  }
+
   /** Marks a spend settled. Creates the entry if the payment predates this ledger (never double counts). */
   async settle(previewId: string, amountAtomic: bigint, paymentHash: string, resolutionId: string, now: Date): Promise<LedgerEntry> {
     return this.serialize(async () => {

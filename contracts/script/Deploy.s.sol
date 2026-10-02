@@ -11,8 +11,11 @@ import {ResolutionWarrantyRegistry} from "../src/ResolutionWarrantyRegistry.sol"
 ///   USDC_ADDRESS           USDC token (must be 6 decimals, must have code)
 ///   REGISTRY_ADMIN_ADDRESS DEFAULT_ADMIN_ROLE holder (registers releases, pauses)
 ///   EXPECTED_CHAIN_ID      optional, default 421614 (Arbitrum Sepolia)
-/// Writes a secret-free record to deployments/<chainId>.json. The transaction hash is in
-/// broadcast/Deploy.s.sol/<chainId>/run-latest.json.
+///   DEPLOYMENT_FILE        optional output path under deployments/ (default
+///                          deployments/<chainId>.json). Fork rehearsals set this so they never
+///                          overwrite the real Arbitrum Sepolia record.
+/// Writes a secret-free record to deployments/<chainId>.json (or DEPLOYMENT_FILE). The transaction
+/// hash is in broadcast/Deploy.s.sol/<chainId>/run-latest.json.
 contract Deploy is Script {
     uint256 internal constant ARBITRUM_SEPOLIA = 421614;
     address internal constant ARBITRUM_SEPOLIA_USDC = 0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d;
@@ -58,6 +61,9 @@ contract Deploy is Script {
         vm.serializeString(key, "compiler", "solc 0.8.30, optimizer 200 runs, evm shanghai");
         string memory json =
             vm.serializeString(key, "sourceCommit", vm.envOr("SOURCE_COMMIT", string("unknown")));
-        vm.writeJson(json, string.concat("deployments/", vm.toString(block.chainid), ".json"));
+        string memory out = vm.envOr(
+            "DEPLOYMENT_FILE", string.concat("deployments/", vm.toString(block.chainid), ".json")
+        );
+        vm.writeJson(json, out);
     }
 }
