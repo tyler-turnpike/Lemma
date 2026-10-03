@@ -1,10 +1,10 @@
 # HackQuest Submission: Lemma
 
-Arbitrum Open House London online buildathon (HackQuest), Solidity track.
+Arbitrum Open House Singapore online buildathon (HackQuest). Suggested track: **Promising Products** (AI agents and novel financial primitives); the project is also eligible for the Overall track.
 
 | | |
 |---|---|
-| **Deadline** | **4 Oct 2026, 19:00 IST (13:30 UTC)** |
+| **Deadline** | **4 Oct 2026, 15:59 SGT = 13:29 IST (07:59 UTC)**. Aim to submit by 11:30 IST. |
 | Demo video | 5:00 hard limit. The script in [video-script.md](video-script.md) targets 3:30 to 4:00 |
 | Pitch video | 5:00 hard limit. The script targets 2:00 or less |
 | Fundraising status | Not fundraising (confirmed by the team) |

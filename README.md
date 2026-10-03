@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/lemma-logo-dark.png">
+    <img alt="Lemma" src="docs/brand/lemma-logo.png" width="320">
+  </picture>
+</p>
+
 # Lemma
 
 **Bonded compatibility resolutions for coding agents, paid with x402 on Arbitrum.**
