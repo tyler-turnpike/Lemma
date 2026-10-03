@@ -13,7 +13,8 @@
  *      `forge script Deploy` (record written to contracts/deployments/fork-421614.json),
  *      registration of both catalog releases, 1 USDC provider bond per release
  *   3. the production server entry (`node apps/server/dist/index.js`) on Postgres, with the
- *      self-hosted facilitator settling on the fork and LEMMA_ALLOW_PROVISIONAL=true
+ *      self-hosted facilitator settling on the fork. No provisional override: releases are priced
+ *      from measured benchmark evidence and sold because they pass the pricing rule
  *   4. the `lemma-mcp` bridge bin spawned over stdio with the MCP SDK client, like a coding agent
  *   5. the evaluator CLI (scripts/evaluator.ts) for Passed, Failed and expiry
  *   6. an injected network fault: the failure-path purchase response is dropped after
@@ -111,7 +112,6 @@ async function main(): Promise<void> {
         FACILITATOR_ADDRESS: roles.facilitator.address,
         FACILITATOR_PRIVATE_KEY: roles.facilitator.privateKey,
         EVALUATOR_ADDRESS: roles.evaluator.address,
-        LEMMA_ALLOW_PROVISIONAL: "true",
       },
       workDir,
     );

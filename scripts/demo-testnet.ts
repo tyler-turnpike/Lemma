@@ -10,7 +10,8 @@
  *
  * Options:
  *   --api URL        use an already running Lemma server instead of starting one locally. It
- *                    must run with LEMMA_ALLOW_PROVISIONAL=true and the same registry.
+ *                    must use the same registry and must NOT set LEMMA_ALLOW_PROVISIONAL, so
+ *                    every sale is one the pricing rule permits on its own.
  *   --memory         local server uses in-memory storage (default: throwaway Postgres 16 when
  *                    available, else memory)
  *   --env-database   local server uses DATABASE_URL from .env
@@ -90,10 +91,10 @@ async function main(): Promise<void> {
           if (getAddress(r.evaluator) !== evaluator.address) blockers.push(`${m.id} evaluator ${r.evaluator} != EVALUATOR_ADDRESS`);
         }
       }
-      const server = loadCatalog().getRelease("x402-mcp-server@1.0.0");
+      const server = loadCatalog().getRelease("x402-mcp-server@1.1.0");
       if (server !== undefined) {
         const r = await readRelease(c.pub, registry, server.releaseId);
-        if (r.availableBond < 2n * BigInt(server.manifest.priceAtomic)) blockers.push(`x402-mcp-server@1.0.0 needs >= ${usdc(2n * BigInt(server.manifest.priceAtomic))} available bond`);
+        if (r.availableBond < 2n * BigInt(server.manifest.priceAtomic)) blockers.push(`x402-mcp-server@1.1.0 needs >= ${usdc(2n * BigInt(server.manifest.priceAtomic))} available bond`);
       }
     }
   }
@@ -128,7 +129,7 @@ async function main(): Promise<void> {
       const status = (await (await fetch(`${api.replace(/\/+$/, "")}/api/v1/status`)).json()) as { registry?: string; provisionalOverride?: boolean; paidTools?: { enabled: boolean } };
       narr.kv("remote server", `${api} registry ${status.registry} provisional ${status.provisionalOverride} paid ${status.paidTools?.enabled}`);
       if (registry !== undefined && (status.registry ?? "").toLowerCase() !== registry.toLowerCase()) blockers.push(`server ${api} uses registry ${status.registry}`);
-      if (status.provisionalOverride !== true) blockers.push(`server ${api} must run with LEMMA_ALLOW_PROVISIONAL=true for the demo`);
+      if (status.provisionalOverride === true) blockers.push(`server ${api} runs with LEMMA_ALLOW_PROVISIONAL=true; unset it so the demo only sells releases the pricing rule permits`);
       if (status.paidTools?.enabled !== true) blockers.push(`server ${api} has paid tools disabled`);
     } catch (error) {
       blockers.push(`server ${api} unreachable (${(error as Error).message})`);
@@ -165,7 +166,6 @@ async function main(): Promise<void> {
           FACILITATOR_ADDRESS: facilitator.address,
           FACILITATOR_PRIVATE_KEY: facilitator.privateKey,
           EVALUATOR_ADDRESS: evaluator.address,
-          LEMMA_ALLOW_PROVISIONAL: "true",
         },
         workDir,
       );

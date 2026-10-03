@@ -49,9 +49,9 @@ export function treatmentPreflight(env: Record<string, string>): string[] {
 }
 
 /**
- * Network preflight for --run: the hosted server must be healthy, have paid tools enabled, sell
- * provisional releases (the catalog has no frozen evidence yet, so without LEMMA_ALLOW_PROVISIONAL
- * the treatment arm could only preview), and name the provider the bridge expects.
+ * Network preflight for --run: the hosted server must be healthy, have paid tools enabled, NOT
+ * override the pricing rule (so every treatment purchase is one the rule permits on its own), and
+ * name the provider the bridge expects.
  */
 export async function serverPreflight(apiUrl: string, providerAddress: string, timeoutMs = 10_000): Promise<string[]> {
   const base = apiUrl.replace(/\/+$/, "");
@@ -65,7 +65,7 @@ export async function serverPreflight(apiUrl: string, providerAddress: string, t
     };
     const problems: string[] = [];
     if (status.paidTools?.enabled !== true) problems.push(`server paid tools are disabled (${status.paidTools?.reason ?? "no reason given"})`);
-    if (status.provisionalOverride !== true) problems.push("server does not sell provisional releases (set LEMMA_ALLOW_PROVISIONAL=true on the server for the testnet benchmark)");
+    if (status.provisionalOverride === true) problems.push("server overrides the pricing rule (unset LEMMA_ALLOW_PROVISIONAL so the benchmark measures releases sold under the rule)");
     if (typeof status.provider !== "string" || status.provider.toLowerCase() !== providerAddress.toLowerCase()) problems.push("server provider address does not match LEMMA_PROVIDER_ADDRESS");
     return problems;
   } catch (e) {

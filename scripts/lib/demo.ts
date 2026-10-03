@@ -59,8 +59,8 @@ const TASK_CLIENT = "x402-paying-mcp-client";
 export async function runDemo(cfg: DemoConfig): Promise<void> {
   const { narr, c, registry } = cfg;
   const catalog = loadCatalog();
-  const serverRelease = catalog.getRelease("x402-mcp-server@1.0.0");
-  const clientRelease = catalog.getRelease("x402-mcp-client@1.0.0");
+  const serverRelease = catalog.getRelease("x402-mcp-server@1.1.0");
+  const clientRelease = catalog.getRelease("x402-mcp-client@1.1.0");
   if (serverRelease === undefined || clientRelease === undefined) throw new Error("catalog releases missing");
   const releases = [serverRelease, clientRelease];
   const price = BigInt(serverRelease.manifest.priceAtomic);
@@ -136,7 +136,7 @@ export async function runDemo(cfg: DemoConfig): Promise<void> {
     if (pv.priceAtomic !== null) narr.kv("price", `${formatUsdc(BigInt(pv.priceAtomic))} USDC`);
     if (pv.warranty !== null) narr.kv("warranty", `coverage ${formatUsdc(BigInt(pv.warranty.bondAtomic))} USDC, claim window ${pv.warranty.claimWindowSeconds / 3600}h`);
     narr.kv("evidence", pv.evidence === null ? "none" : `${pv.evidence.status}${pv.expectedSavingAtomic !== null ? `, expected saving ${formatUsdc(BigInt(pv.expectedSavingAtomic))} USDC` : ""}`);
-    narr.kv("provisional override", pv.provisionalOverride ? "YES (LEMMA_ALLOW_PROVISIONAL=true, demo only)" : "no");
+    narr.kv("provisional override", pv.provisionalOverride ? "YES (pricing rule bypassed)" : "no: priced from measured evidence, sold under the 30% rule");
     for (const r of pv.reasons.slice(0, 6)) narr.say(`  - ${r}`);
     for (const l of pv.limitations.slice(0, 3)) narr.say(`  limitation: ${l}`);
     narr.kv("local spend policy", p.local.purchaseAllowedByLocalPolicy ? `allows purchase (spent today ${p.local.spentTodayUsdc} / cap ${p.local.dailyCapUsdc} USDC)` : `refuses: ${p.local.policyReasons.join("; ")}`);
@@ -154,7 +154,7 @@ export async function runDemo(cfg: DemoConfig): Promise<void> {
     const pv = await bridge.call<PreviewData>("lemma_preview", { kind });
     if (!pv.ok) throw new Error(`lemma_preview failed: ${pv.error.code} ${pv.error.message}`);
     showPreview(pv.data);
-    narr.check(pv.data.preview.purchasable && pv.data.local.purchaseAllowedByLocalPolicy, `${label}: preview is purchasable and within local policy`);
+    narr.check(pv.data.preview.purchasable && !pv.data.preview.provisionalOverride && pv.data.local.purchaseAllowedByLocalPolicy, `${label}: purchasable under the pricing rule (no override) and within local policy`);
     if (steps !== undefined) narr.step(...steps.buy);
     const before = await snapshot();
     opts.beforeBuy?.();
@@ -213,8 +213,8 @@ export async function runDemo(cfg: DemoConfig): Promise<void> {
     narr.kv("evaluator", cfg.evaluator.address);
     narr.kv("buyer (bridge wallet)", cfg.buyer.address);
     narr.kv("paid tools", JSON.stringify(status.paidTools));
-    narr.note("LEMMA_ALLOW_PROVISIONAL=true: releases have provisional (not yet benchmarked) evidence; the server offers them for this demo only.");
-    narr.check(status.registry === registry && status.provisionalOverride === true, "server is wired to this registry with the provisional override on");
+    narr.note("Releases are priced from measured benchmark evidence (lemma-bench-v1); the server sells them only because they pass the pricing rule, with no override.");
+    narr.check(status.registry === registry && status.provisionalOverride !== true, "server is wired to this registry with the provisional override off");
     showBalances(start);
 
     // ---------------------------------------------------------------- happy path
