@@ -81,6 +81,25 @@ const metrics: readonly (readonly [keyof BenchmarkArm, string])[] = [
   ["medianDurationMs", "Median wall clock"],
 ];
 
+/** Every series, including the stopped one, so the current result can be read in context. */
+function History() {
+  return (
+    <Panel title={copy.history.title}>
+      <ol className="divide-y divide-line">
+        {copy.history.entries.map((e) => (
+          <li key={e.version} className="grid gap-2 px-5 py-4 text-sm md:grid-cols-[11rem_1fr] md:gap-6 md:px-6">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-mono text-[0.8125rem] text-fg">{e.version}</span>
+              <Badge>{e.status}</Badge>
+            </div>
+            <p className="leading-relaxed text-muted">{e.body}</p>
+          </li>
+        ))}
+      </ol>
+    </Panel>
+  );
+}
+
 function Published({ aggregate }: { readonly aggregate: BenchmarkAggregate }) {
   const n = aggregate.runs ?? ((aggregate.control.runs ?? 0) + (aggregate.treatment.runs ?? 0) + (aggregate.noMatchRuns ?? 0) || null);
   const verdict =
@@ -123,7 +142,10 @@ function Published({ aggregate }: { readonly aggregate: BenchmarkAggregate }) {
 
       {aggregate.summary === null ? null : <p className="max-w-3xl leading-relaxed text-fg">{aggregate.summary}</p>}
 
-      <Panel title="Per-arm medians, matched tasks" aside={<span className="text-xs text-faint">testnet · n={n ?? "?"}</span>}>
+      <Panel
+        title="Per-arm medians, matched tasks"
+        aside={<span className="text-xs text-faint">testnet · n={aggregate.control.runs ?? "?"} + {aggregate.treatment.runs ?? "?"}</span>}
+      >
         <div className="overflow-x-auto">
           <table className="w-full min-w-[22rem] text-sm">
             <thead>
@@ -144,7 +166,10 @@ function Published({ aggregate }: { readonly aggregate: BenchmarkAggregate }) {
             </tbody>
           </table>
         </div>
-        {aggregate.costLabel === null ? null : <p className="border-t border-line px-5 py-4 text-xs leading-relaxed text-faint md:px-6">{aggregate.costLabel}</p>}
+        <p className="border-t border-line px-5 py-4 text-xs leading-relaxed text-faint md:px-6">
+          {copy.costComposition}
+          {aggregate.costLabel === null ? "" : ` ${aggregate.costLabel}`}
+        </p>
       </Panel>
 
       {aggregate.limitations.length === 0 ? null : (
@@ -162,6 +187,7 @@ function Published({ aggregate }: { readonly aggregate: BenchmarkAggregate }) {
       <p className="text-sm text-muted">
         Method: <ExternalLink href={links.benchmarkProtocol}>docs/benchmark-protocol.md</ExternalLink>
       </p>
+      <History />
     </div>
   );
 }

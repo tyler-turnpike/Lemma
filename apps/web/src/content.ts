@@ -320,6 +320,27 @@ export const dashboard = {
       cta: "Read the protocol",
     },
     unrecognised: "An aggregate was published, but in a format this dashboard cannot read. Nothing is shown rather than a guess.",
+    costComposition: "All-in cost = estimated model cost at list price + the Lemma price paid (USDC at par); testnet gas excluded.",
+    history: {
+      title: "Series",
+      entries: [
+        {
+          version: "lemma-bench-v3",
+          status: "Current",
+          body: "The same frozen 20-run matrix, re-run with releases sold at the price derived from v1 (0.005 USDC, x402-mcp-*@1.1.0) and the provisional override off.",
+        },
+        {
+          version: "lemma-bench-v2",
+          status: "Stopped",
+          body: "Stopped after 8 runs and not aggregated. A relabelled comment in the 1.1.0 payload made its acceptance test differ from the installed one, so every patch was refused and the agent wrote the code by hand. It measured that defect, not the price. Fixed with a regression test; records kept.",
+        },
+        {
+          version: "lemma-bench-v1",
+          status: "Set the price",
+          body: "Releases sold at a provisional 0.12 USDC. Tokens fell 75% and all passes held, but all-in cost rose because 0.12 was 5.4× the measured saving. The 1.1.0 price was derived from this measurement.",
+        },
+      ],
+    },
     target: 0.25,
   },
   status: {

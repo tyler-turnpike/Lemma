@@ -9,7 +9,7 @@
 
 **Bonded compatibility resolutions for coding agents, paid with x402 on Arbitrum.**
 
-Lemma lets a coding agent ask, before it writes any code, whether verified prior integration work already fits the repository in front of it. The preview is free. If a curated Capability Release fits, a local MCP bridge pays a few cents of USDC through x402, receives a provider-signed resolution (a patch bundle plus a pinned acceptance test), applies it, and runs the test. Every paid resolution reserves provider bond in a warranty registry on Arbitrum Sepolia. If an evaluator confirms that the adoption failed, the buyer is refunded from that bond. Lemma sells verified applicability and a ready integration path. It does not sell ownership of open-source code.
+Lemma lets a coding agent ask, before it writes any code, whether verified prior integration work already fits the repository in front of it. The preview is free. If a curated Capability Release fits, a local MCP bridge pays a per-request quote in USDC through x402 (from half a cent, scaled to the agent's model, most of it charged only if the tests pass), receives a provider-signed resolution (a patch bundle plus a pinned acceptance test), applies it, and runs the test. Every paid resolution reserves provider bond in a warranty registry on Arbitrum Sepolia. If an evaluator confirms that the adoption failed, the buyer is refunded from that bond. Lemma sells verified applicability and a ready integration path. It does not sell ownership of open-source code.
 
 > **Status: working testnet MVP.** The contract is deployed on Arbitrum Sepolia, both releases are registered and bonded, and the full product flow runs end to end on a fork with `npm run demo:fork`. The full flow has also run live on Arbitrum Sepolia: [live x402 settlement](https://sepolia.arbiscan.io/tx/0x38e6c25b7b690e61d6de9a3ab533d7a08d71f2e0f62bdf26ae35d887d4a4f869), warranty activation, evaluator outcomes and a [bond refund](https://sepolia.arbiscan.io/tx/0x4ce2d7730211aa1e37604ed5adccc9803a35ec487379eed61c87887fed9bc1ce) (`npm run demo:testnet -- --yes`). The paired 20-run benchmark measured 74.9% fewer tokens but missed the all-in cost target, so Lemma makes **no savings claim**. See [Status and limitations](#status-trust-assumptions-and-limitations).
 
@@ -72,12 +72,14 @@ More detail: [docs/architecture.md](docs/architecture.md), [docs/interfaces.md](
 | Hosted server and dashboard | https://lemma-production-8383.up.railway.app |
 | Live demo purchase | [live x402 settlement](https://sepolia.arbiscan.io/tx/0x38e6c25b7b690e61d6de9a3ab533d7a08d71f2e0f62bdf26ae35d887d4a4f869) · [bond refund](https://sepolia.arbiscan.io/tx/0x4ce2d7730211aa1e37604ed5adccc9803a35ec487379eed61c87887fed9bc1ce) |
 
-Registered releases, each priced at 0.12 USDC with a 72-hour claim window and bonded with 1 USDC:
+Releases on sale, each registered at 0.005 USDC (the warranty-covered up-front price, derived from the lemma-bench-v1 measurement) with a 72-hour claim window and bonded with 1 USDC. Each preview quotes up to 25% of the saving scaled to the buyer's model; the part above 0.005 is a success fee paid only after the tests pass ([docs/economics.md](docs/economics.md#per-request-quote)):
 
 | Release | On-chain `releaseId` | Registration tx |
 |---|---|---|
-| `x402-mcp-server@1.0.0`: x402 payment gating for a TypeScript MCP server | `0x62bba684a1de6151831106c327faa33f272c0421ab9276ef67921acb227c6edf` | [`0x7d229105…5bef6b`](https://sepolia.arbiscan.io/tx/0x7d2291055665968ea15984a79202e9f8052cb1dee9f5dde194f51369985bef6b) |
-| `x402-mcp-client@1.0.0`: x402-paying MCP client with spend limits | `0x01efd47d351906ba16367c07164dd008e4c554f3e878c227aa8c3018611e3ac4` | [`0xbca22fad…1e3ac4`](https://sepolia.arbiscan.io/tx/0xbca22faddefbfd5b1e86e86e726d795f5647283fe7ddbb2d33152fdc6fb6998a) |
+| `x402-mcp-server@1.1.0`: x402 payment gating for a TypeScript MCP server | `0xe384486ab225a56e70a26bc9850d4e2ed008acb037c2548a00bb6bd06568dba6` | [`0x64324dd0…97903d`](https://sepolia.arbiscan.io/tx/0x64324dd03aa9bee1ee1777ea8779771f01d06e6e6655ed4e8485d85fc097903d) |
+| `x402-mcp-client@1.1.0`: x402-paying MCP client with spend limits | `0x8ee12acb93003169bd7f8cf72f745c3feb1f23fbdfdff161f42bdc0331cb1119` | [`0x429e6003…0929ef`](https://sepolia.arbiscan.io/tx/0x429e60030a5b234b044425c8a739cf2b2eabfa0b7357fb00fa45bef6ef0929ef) |
+
+The earlier `1.0.0` registrations (same payloads, provisional 0.12 USDC price) remain on chain for the record but are no longer sold: [server](https://sepolia.arbiscan.io/tx/0x7d2291055665968ea15984a79202e9f8052cb1dee9f5dde194f51369985bef6b), [client](https://sepolia.arbiscan.io/tx/0xbca22faddefbfd5b1e86e86e726d795f5647283fe7ddbb2d33152fdc6fb6998a).
 
 The machine-readable record, including bond transactions, the EIP-712 domain separator, the compiler settings, and the source commit, is in [`contracts/deployments/421614.json`](contracts/deployments/421614.json).
 
@@ -108,9 +110,9 @@ This takes about 20 seconds and needs no keys, no `.env`, and no funds. It forks
 - deploys the registry, registers and bonds both releases,
 - starts the production server entry with its self-hosted x402 facilitator,
 - drives the real `lemma-mcp` bridge over stdio, the same way a coding agent does,
-- runs a free preview, a capped x402 purchase with real settlement, warranty activation, patch apply, acceptance test, signed receipt, and evaluator `Passed`,
+- runs a free preview with a quote for a declared model, a capped x402 purchase with real settlement, warranty activation, patch apply, acceptance test, the success fee over x402, signed receipt, and evaluator `Passed`,
 - shows free `decline` decisions on a Python repository and an Express repository with no MCP server (0 USDC spent),
-- runs a clearly labelled **prepared failure**: a dropped paid response is recovered without a second payment, the evaluator signs `Failed`, and the buyer withdraws 0.12 USDC from the provider bond,
+- runs a clearly labelled **prepared failure**: a dropped paid response is recovered without a second payment, the evaluator signs `Failed`, and the buyer withdraws the full up-front price from the provider bond (no success fee is ever charged on a failure),
 - advances chain time 72 hours and expires an unresolved warranty.
 
 It prints a numbered narrative with balances and transaction hashes and ends with `DEMO PASSED`. Use `npm run demo:fork -- --memory` to skip Postgres, or `-- --keep` to keep logs and workspaces.
@@ -119,26 +121,18 @@ The live-network version (`npm run demo:testnet -- --yes`) needs funded testnet 
 
 ### Connect the bridge to your coding agent
 
-```bash
-npm run build -w @lemma/bridge     # produces apps/bridge/dist/index.js (the lemma-mcp bin)
-```
-
-Claude Code example:
+One command, no clone and no keys. The bridge is bundled and served by the Lemma server itself:
 
 ```bash
-claude mcp add lemma \
-  -e LEMMA_API_URL=https://lemma-production-8383.up.railway.app \
-  -e LEMMA_WORKSPACE="$PWD" \
-  -e BUYER_PRIVATE_KEY=0x... \
-  -e LEMMA_PROVIDER_ADDRESS=0xA9361c7A43b65933EAFdCEf63CfC07449C38AcB1 \
-  -e RESOLUTION_WARRANTY_REGISTRY_ADDRESS=0x45Ae8799dF4C0878AD22CFe7040383F25f046d56 \
-  -e ARBITRUM_SEPOLIA_RPC_URL=https://sepolia-rollup.arbitrum.io/rpc \
-  -- node /absolute/path/to/Lemma/apps/bridge/dist/index.js
+# Claude Code
+claude mcp add -s local -t stdio lemma -- npx -y https://lemma-production-8383.up.railway.app/dl/lemma-mcp-0.1.0.tgz
+# Codex
+codex mcp add lemma -- npx -y https://lemma-production-8383.up.railway.app/dl/lemma-mcp-0.1.0.tgz
 ```
 
-Use a throwaway testnet wallet as the buyer. Codex (`~/.codex/config.toml`) and Cursor (`.cursor/mcp.json`) configurations, every environment variable, and the purchase safety rules are in [apps/bridge/README.md](apps/bridge/README.md). The buyer key lives only in the MCP server's environment block. The model never sees it.
+Cursor, VS Code and Goose get one-click install buttons on **[/connect](https://lemma-production-8383.up.railway.app/connect)**, which also has the generic `mcpServers` JSON for Windsurf, Zed and Cline. On first run the bridge creates a testnet burner wallet in `~/.lemma/wallet.json` (mode 0600, never printed); ask the agent to call `lemma_wallet` for its address and faucet links. Production defaults (API, provider, registry, RPC, USDC) are baked in and any of them can be overridden by environment. Set `LEMMA_AGENT_MODEL` (or let the agent pass `model` to `lemma_preview`) to get a quote scaled to your model.
 
-The bridge exposes four tools: `lemma_preview`, `lemma_buy_resolution`, `lemma_apply_resolution` (dry run unless `apply: true`), and `lemma_verify_adoption`.
+To run from source instead: `npm run build -w @lemma/bridge` and point the agent at `node apps/bridge/dist/index.js`. Every environment variable and the purchase safety rules are in [apps/bridge/README.md](apps/bridge/README.md). The buyer key never reaches the model.
 
 ## Repository map
 
