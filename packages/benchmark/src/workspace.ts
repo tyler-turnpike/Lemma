@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, sep } from "node:path";
 
@@ -57,6 +57,11 @@ export type Snapshot = Map<string, string>;
 /** Top-level scratch dirs excluded from change counts: Codex sandbox TMPDIR (.tmp) and vitest caches (.vitest-tmp). */
 const SCRATCH_DIRS = new Set([".tmp", ".vitest-tmp"]);
 
+/** A top-level dir is a test-runner cache (vite/vitest, node compile cache) when it holds `ssr/` or `node-compile-cache/`. */
+function isCacheDir(path: string): boolean {
+  return existsSync(join(path, "ssr")) || existsSync(join(path, "node-compile-cache"));
+}
+
 /** path -> sha256 of every regular file, excluding node_modules, .git and top-level scratch dirs. */
 export function snapshot(dir: string): Snapshot {
   const out: Snapshot = new Map();
@@ -65,6 +70,7 @@ export function snapshot(dir: string): Snapshot {
       if (entry.name === "node_modules" || entry.name === ".git") continue;
       if (d === dir && SCRATCH_DIRS.has(entry.name)) continue;
       const full = join(d, entry.name);
+      if (d === dir && entry.isDirectory() && isCacheDir(full)) continue;
       if (entry.isDirectory()) walk(full);
       else if (entry.isFile()) out.set(relative(dir, full).split(sep).join("/"), sha256File(full));
     }

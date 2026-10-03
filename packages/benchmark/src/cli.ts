@@ -14,7 +14,7 @@ import { benchmarkEnv, knownSecrets } from "./secrets.js";
 const MODES = ["plan", "smoke", "run", "report"] as const;
 type Mode = (typeof MODES)[number];
 
-export type CliArgs = { mode: Mode | null; confirm: boolean; keepWorkspace: boolean; experiment: string; envFile: string; publish: boolean; arm: Arm };
+export type CliArgs = { mode: Mode | null; confirm: boolean; keepWorkspace: boolean; experiment: string; envFile: string; publish: boolean; arm: Arm; budgetUsd: number | null };
 
 /** Parses flags (the root script forwards them with `npm run benchmark -w @lemma/benchmark --`). */
 export function parseArgs(argv: readonly string[]): CliArgs {
@@ -30,7 +30,11 @@ export function parseArgs(argv: readonly string[]): CliArgs {
   const arm = value("arm") ?? "control";
   if (arm !== "control" && arm !== "treatment") throw new Error("--arm must be control or treatment");
   if (flags.has("arm") && modes[0] !== "smoke") throw new Error("--arm applies to --smoke only");
+  const budget = value("budget-usd");
+  const budgetUsd = budget === undefined ? null : Number(budget);
+  if (budgetUsd !== null && !(Number.isFinite(budgetUsd) && budgetUsd > 0)) throw new Error("--budget-usd must be a positive number");
   return {
+    budgetUsd,
     arm,
     mode: modes[0] ?? null,
     confirm: flags.has("confirm"),
@@ -47,7 +51,8 @@ const USAGE = `Usage: npm run benchmark -- <mode>
                        --arm treatment smokes the Lemma arm: live server, bridge and one real testnet purchase
   --run --confirm      execute the full matrix (needs the live Lemma server and a funded buyer wallet for treatment)
   --report             aggregate final records and write published/aggregate.json (--no-publish to skip writing)
-Options: --experiment <id> (default ${EXPERIMENT_VERSION}), --env-file <path>, --keep-workspace`;
+Options: --experiment <id> (default ${EXPERIMENT_VERSION}), --env-file <path>, --keep-workspace,
+         --budget-usd <n>  (--run) stop before a run when estimated model spend this invocation plus the costliest run so far would exceed n`;
 
 function describeRecord(r: RunRecord): string {
   return [
@@ -147,13 +152,21 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
   }
   const outDir = join(runsDir(), args.experiment);
   let exit = 0;
+  let spentUsd = 0;
+  let costliestUsd = 0;
   for (const planned of plan) {
     if (existsSync(join(outDir, `${planned.runId}.json`))) {
       log(`[${planned.runId}] already recorded; kept as is`);
       continue;
     }
+    if (args.budgetUsd !== null && spentUsd + costliestUsd > args.budgetUsd) {
+      log(`budget stop: spent ~$${spentUsd.toFixed(4)} of $${args.budgetUsd.toFixed(2)}; the next run could exceed it. Remaining runs not started.`);
+      return 2;
+    }
     const record = await executeRun(planned, { experimentVersion: args.experiment, series: "final", catalog, env, outDir, keepWorkspace: args.keepWorkspace, log });
-    log(describeRecord(record));
+    spentUsd += record.cost.rawModelUsd;
+    costliestUsd = Math.max(costliestUsd, record.cost.rawModelUsd);
+    log(`${describeRecord(record)}\n  model spend this invocation ~$${spentUsd.toFixed(4)}`);
     if (record.error?.phase === "startup") exit = 1;
   }
   return exit;

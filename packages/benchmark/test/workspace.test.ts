@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { loadCatalog } from "@lemma/catalog";
@@ -42,6 +42,10 @@ describe("workspaces", () => {
     rmSync(join(ws.dir, "src", "index.ts"));
     rmSync(join(ws.dir, ".tmp"), { recursive: true, force: true });
     writeFileSync(join(ws.dir, "node_modules", ".cache-probe"), "x");
+    mkdirSync(join(ws.dir, "vitest-cache", "ssr"), { recursive: true });
+    writeFileSync(join(ws.dir, "vitest-cache", "ssr", "chunk.js"), "x");
+    mkdirSync(join(ws.dir, "tmp-cache", "node-compile-cache"), { recursive: true });
+    writeFileSync(join(ws.dir, "tmp-cache", "node-compile-cache", "v22"), "x");
     const diff = diffSnapshots(before, snapshot(ws.dir));
     expect(diff).toEqual({ added: ["src/new.ts"], modified: ["src/server.ts"], deleted: ["src/index.ts"], count: 3 });
   });
@@ -59,6 +63,9 @@ describe("cli arguments", () => {
     expect(parseArgs(["--smoke", "--arm=treatment"]).arm).toBe("treatment");
     expect(() => parseArgs(["--smoke", "--arm", "lemma"])).toThrow();
     expect(() => parseArgs(["--run", "--confirm", "--arm", "treatment"])).toThrow();
+    expect(parseArgs(["--run", "--budget-usd", "2"]).budgetUsd).toBe(2);
+    expect(parseArgs(["--run"]).budgetUsd).toBeNull();
+    expect(() => parseArgs(["--run", "--budget-usd", "0"])).toThrow();
   });
 });
 
