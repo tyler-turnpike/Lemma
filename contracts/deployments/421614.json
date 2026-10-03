@@ -6,7 +6,7 @@
   "deployer": "0x4Ce5cE1F77bE49a060D7c0DCAee3835C067EBCD4",
   "domainSeparator": "0x7b36a988a9547ccb58c8f6df2d7971525931033519eb31ed8decd537e7ee4fa2",
   "registry": "0x45Ae8799dF4C0878AD22CFe7040383F25f046d56",
-  "sourceCommit": "850a1f7bcdb82cec78efb77e42c409153123ccd1",
+  "sourceCommit": "4a357ed1873fb8b9b4523bd683889a188885deb5",
   "usdc": "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d",
   "deployTxHash": "0xa015c0cc368327f674f4f0954816b6ccc6154a384d73c61ae41ab0105173cc42",
   "deployBlockNumber": "315091623",
@@ -24,10 +24,25 @@
       "evaluator": "0xd059A60Cf6Cc3fD83002389f2128cFB6F1c70a77",
       "priceAtomic": "120000",
       "claimWindowSeconds": 259200,
-      "registerTxHash": "0xbca22faddefbfd5b1e86e86e726d795f5647283fe7ddbb2d33152fdc6fb6998a",
+      "registerTxHash": null,
       "bondTxHashes": [
-        "0xcaab553ed1266a1d958ffae50558d01bf8add62227ee7a847e08a904b888eb37",
-        "0xfdd7e03ac05099a893e424533f2779b0dc0b6831214bb08f634359af18d1fc85"
+        "0xddacb6fec27c39d9aff78a8766718daf1fbe428358fc09db69ab5fc6e8569374",
+        "0x48765894f47b723672dd47800b4c69bed07fb60005cf91ebb0d63e8bb02be897"
+      ],
+      "availableBondAtomic": "1000000",
+      "reservedBondAtomic": "240000"
+    },
+    {
+      "id": "x402-mcp-client@1.1.0",
+      "releaseId": "0x8ee12acb93003169bd7f8cf72f745c3feb1f23fbdfdff161f42bdc0331cb1119",
+      "provider": "0xA9361c7A43b65933EAFdCEf63CfC07449C38AcB1",
+      "evaluator": "0xd059A60Cf6Cc3fD83002389f2128cFB6F1c70a77",
+      "priceAtomic": "5000",
+      "claimWindowSeconds": 259200,
+      "registerTxHash": "0x429e60030a5b234b044425c8a739cf2b2eabfa0b7357fb00fa45bef6ef0929ef",
+      "bondTxHashes": [
+        "0x3ec3972783f7590c2761fa849f46f1b631bd0b883aa4cbb3e490bbffd632d636",
+        "0x43b35b31eff4f2af05f250868d4a52c7d10e12ee1fa737b5eadc206799d76208"
       ],
       "availableBondAtomic": "1000000",
       "reservedBondAtomic": "0"
@@ -39,14 +54,29 @@
       "evaluator": "0xd059A60Cf6Cc3fD83002389f2128cFB6F1c70a77",
       "priceAtomic": "120000",
       "claimWindowSeconds": 259200,
-      "registerTxHash": "0x7d2291055665968ea15984a79202e9f8052cb1dee9f5dde194f51369985bef6b",
+      "registerTxHash": null,
       "bondTxHashes": [
-        "0xceeb6c7cecfadc095f8c509315a1fcbd90220707dbcd1e0e6dd8ad9dd467acc5",
-        "0x0663aef4a43b91840a69bb11698b1253235cb6d14d060c830a92ff2ace9e72bb"
+        "0xe033339c63948a7cab73fb9c66af8cd2b392fce8724eb4764ea466e0c922be3c",
+        "0xe1fc26657b3a7910a33c9595dff7643f5fb3a973f37d526c03d6346f9915104a"
+      ],
+      "availableBondAtomic": "1000000",
+      "reservedBondAtomic": "840000"
+    },
+    {
+      "id": "x402-mcp-server@1.1.0",
+      "releaseId": "0xe384486ab225a56e70a26bc9850d4e2ed008acb037c2548a00bb6bd06568dba6",
+      "provider": "0xA9361c7A43b65933EAFdCEf63CfC07449C38AcB1",
+      "evaluator": "0xd059A60Cf6Cc3fD83002389f2128cFB6F1c70a77",
+      "priceAtomic": "5000",
+      "claimWindowSeconds": 259200,
+      "registerTxHash": "0x64324dd03aa9bee1ee1777ea8779771f01d06e6e6655ed4e8485d85fc097903d",
+      "bondTxHashes": [
+        "0x1e8a4df35ff3c347275ba019b367c5f4e7bb61f056fd7ef24a76b915bade87df",
+        "0x49bbe51f892a952b65443947a86bffd48fbc717cb4a50aad7915c8bad094c7d6"
       ],
       "availableBondAtomic": "1000000",
       "reservedBondAtomic": "0"
     }
   ],
-  "updatedAt": "2026-10-02T20:05:13.781Z"
+  "updatedAt": "2026-10-03T09:38:21.907Z"
 }
