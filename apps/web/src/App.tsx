@@ -6,7 +6,6 @@ import { Guarantees } from "./components/Guarantees.js";
 import { Hero } from "./components/Hero.js";
 import { HowItWorks } from "./components/HowItWorks.js";
 import { LiveProof } from "./components/LiveProof.js";
-import { ProductMock } from "./components/mock/ProductMock.js";
 import { Nav } from "./components/Nav.js";
 import { WhyArbitrum } from "./components/WhyArbitrum.js";
 import { BenchmarkPage } from "./pages/BenchmarkPage.js";
@@ -22,7 +21,6 @@ function Landing() {
       <Hero />
       <LiveProof />
       <HowItWorks />
-      <ProductMock />
       <Guarantees />
       <WhyArbitrum />
       <ClosingCta />

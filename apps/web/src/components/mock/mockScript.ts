@@ -49,7 +49,7 @@ export const mockSteps: readonly MockStep[] = [
   { delay: 700, line: { kind: "ok", text: "applied atomically", detail: "4 files · +86 −3" } },
   { delay: 800, line: { kind: "tool", name: "lemma_verify_adoption", args: "recipe=pinned" } },
   { delay: 900, line: { kind: "ok", text: "acceptance tests", detail: "12 / 12 passed" } },
-  { delay: 600, line: { kind: "ok", text: "Adoption Receipt signed", detail: "warranty voucher signed · 72h claim window" } },
+  { delay: 600, line: { kind: "ok", text: "Adoption Receipt signed", detail: "warranty signed · 72h claim window" } },
 ];
 
 export const decisionCard = {

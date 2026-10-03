@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { App } from "../src/App.js";
 import { figuresFrom, fallbackFigures } from "../src/components/LiveProof.js";
 import { closing, featured, footer, guarantees, hero, howItWorks, mock, nav, whyArbitrum } from "../src/content.js";
-import { decisionCard, mockSteps } from "../src/components/mock/mockScript.js";
+import { decisionCard, mockSteps, mockTitle } from "../src/components/mock/mockScript.js";
 import { parseBenchmarks } from "../src/api/parse.js";
 import { safeExternalHref } from "../src/lib/links.js";
 import publishedJson from "./fixtures/benchmarks-published.json";
@@ -21,7 +21,6 @@ describe("landing page", () => {
       hero.lede,
       featured.settlementTx.slice(0, 10),
       howItWorks.label,
-      mock.label,
       guarantees.label,
       whyArbitrum.label,
       closing.headline[0],
@@ -47,6 +46,19 @@ describe("landing page", () => {
   it("points GitHub links at the submission branch, not the bare main scaffold", () => {
     expect(html).toContain("https://github.com/tyler-turnpike/Lemma/tree/claude/happy-lovelace-tk3hme");
     expect(html).not.toContain("/blob/main/");
+  });
+
+  it("puts the agent demo in the hero, above the live proof strip", () => {
+    const heroAt = text.indexOf(hero.headline[0]);
+    const demoAt = text.indexOf(mock.illustrative);
+    const proofAt = text.indexOf(featured.settlementTx.slice(0, 10));
+    expect(heroAt).toBeGreaterThanOrEqual(0);
+    expect(demoAt).toBeGreaterThan(heroAt);
+    expect(demoAt).toBeLessThan(proofAt);
+    // Exactly one terminal: the hero's.
+    expect(text.split(mockTitle).length - 1).toBe(1);
+    expect(text.split("Lemma · preview").length - 1).toBe(1);
+    expect(text).toContain(mock.replay);
   });
 
   it("server-renders the mock at its final frame, labelled illustrative with the real tx", () => {

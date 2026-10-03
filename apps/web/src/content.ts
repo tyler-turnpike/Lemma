@@ -98,12 +98,9 @@ export const howItWorks = {
 } as const;
 
 export const mock = {
-  label: "In use",
-  headline: ["Ask before building,", "pay only when it fits"],
-  lede: "Before writing code, the agent asks Lemma whether verified prior work fits this repository. The preview is free. If it fits, the bridge pays a few cents in USDC, applies the patch and runs the pinned tests.",
   replay: "Replay",
   illustrative: "Illustrative",
-} as const satisfies { label: string; headline: readonly [string, string]; lede: string; replay: string; illustrative: string };
+} as const;
 
 export const guarantees = {
   label: "Guarantees",
