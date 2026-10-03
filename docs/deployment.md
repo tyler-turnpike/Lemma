@@ -93,7 +93,7 @@ npm run demo:testnet                      # preflight, read-only
 npm run demo:testnet -- --yes             # local server; or add --api https://<railway-url>
 ```
 
-Runs the demo narrative on Arbitrum Sepolia with Arbiscan links: unpaid preview, one x402 payment settled by the facilitator, warranty activation, apply and acceptance, signed receipt, evaluator Passed, free no-match on the Python and Express fixtures, prepared failure with evaluator Failed, buyer credit and `withdrawCredit`. Cost per run: 0.24 USDC from the buyer (0.12 returned from the provider bond) plus gas. Lost-response recovery and expiry are demonstrated on the fork (`demo:fork`); live, unresolved warranties are expired after 72 h with:
+Runs the demo narrative on Arbitrum Sepolia with Arbiscan links: unpaid preview, one x402 payment settled by the facilitator, warranty activation, apply and acceptance, signed receipt, evaluator Passed, free no-match on the Python and Express fixtures, prepared failure with evaluator Failed, buyer credit and `withdrawCredit`. Cost per run: about 0.063 USDC from the buyer (0.005 + a 0.053 success fee for the passing gpt-5.6-terra resolution; the failure's 0.005 is returned from the provider bond) plus gas. Lost-response recovery and expiry are demonstrated on the fork (`demo:fork`); live, unresolved warranties are expired after 72 h with:
 
 ```sh
 npm run evaluator -- expire --resolution 0x... --yes

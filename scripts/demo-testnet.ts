@@ -18,8 +18,9 @@
  *   --dotenv PATH    default <repo>/.env
  *   --keep           keep the scratch directory (always kept, with log tails printed, on failure)
  *
- * Cost per run: 0.24 USDC from the buyer (0.12 kept by the provider for the passing resolution,
- * 0.12 refunded from the bond for the prepared failure), about 8 small transactions of gas
+ * Cost per run: about 0.063 USDC from the buyer (0.005 up front plus a 0.053 success fee kept by
+ * the provider for the passing gpt-5.6-terra resolution; 0.005 paid and refunded from the bond for
+ * the prepared failure, which owes no fee), about 9 small transactions of gas
  * across facilitator, buyer and evaluator. Expiry is not demonstrated live (72h window).
  */
 import { spawnSync } from "node:child_process";

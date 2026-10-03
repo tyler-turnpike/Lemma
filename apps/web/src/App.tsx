@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, type ComponentType } from "react";
 
 import { ClosingCta } from "./components/ClosingCta.js";
 import { Footer } from "./components/Footer.js";
@@ -12,13 +12,47 @@ import { WhyArbitrum } from "./components/WhyArbitrum.js";
 import { NotFoundPage } from "./pages/NotFoundPage.js";
 import { matchRoute, usePathname, type Route } from "./router.js";
 
+/**
+ * lazy() that survives a redeploy: a tab opened before the deploy asks for chunk names that no
+ * longer exist, so on the first failed import reload once to pick up the new index.html.
+ */
+function lazyPage<T extends ComponentType<any>>(load: () => Promise<{ default: T }>) {
+  const key = "lemma:chunk-reload";
+  return lazy(() =>
+    load().then(
+      (page) => {
+        try {
+          sessionStorage.removeItem(key);
+        } catch {
+          // ignore
+        }
+        return page;
+      },
+      (error: unknown) => {
+        let reloaded = false;
+        try {
+          reloaded = sessionStorage.getItem(key) === "1";
+          sessionStorage.setItem(key, "1");
+        } catch {
+          // storage unavailable: fall through to reload once per page view
+        }
+        if (!reloaded && typeof window !== "undefined") {
+          window.location.reload();
+          return new Promise<never>(() => undefined);
+        }
+        throw error;
+      },
+    ),
+  );
+}
+
 // Dashboard pages load on demand so the landing page ships only what it renders.
-const BenchmarkPage = lazy(() => import("./pages/BenchmarkPage.js").then((m) => ({ default: m.BenchmarkPage })));
-const CatalogPage = lazy(() => import("./pages/CatalogPage.js").then((m) => ({ default: m.CatalogPage })));
-const ConnectPage = lazy(() => import("./pages/ConnectPage.js").then((m) => ({ default: m.ConnectPage })));
-const ResolutionPage = lazy(() => import("./pages/ResolutionPage.js").then((m) => ({ default: m.ResolutionPage })));
-const ResolutionLookupPage = lazy(() => import("./pages/ResolutionPage.js").then((m) => ({ default: m.ResolutionLookupPage })));
-const StatusPage = lazy(() => import("./pages/StatusPage.js").then((m) => ({ default: m.StatusPage })));
+const BenchmarkPage = lazyPage(() => import("./pages/BenchmarkPage.js").then((m) => ({ default: m.BenchmarkPage })));
+const CatalogPage = lazyPage(() => import("./pages/CatalogPage.js").then((m) => ({ default: m.CatalogPage })));
+const ConnectPage = lazyPage(() => import("./pages/ConnectPage.js").then((m) => ({ default: m.ConnectPage })));
+const ResolutionPage = lazyPage(() => import("./pages/ResolutionPage.js").then((m) => ({ default: m.ResolutionPage })));
+const ResolutionLookupPage = lazyPage(() => import("./pages/ResolutionPage.js").then((m) => ({ default: m.ResolutionLookupPage })));
+const StatusPage = lazyPage(() => import("./pages/StatusPage.js").then((m) => ({ default: m.StatusPage })));
 
 function Landing() {
   return (
