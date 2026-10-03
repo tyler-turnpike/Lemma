@@ -1,4 +1,4 @@
-// Acceptance test shipped by Lemma capability release x402-mcp-client@1.1.0.
+// Acceptance test shipped by Lemma capability release x402-mcp-client@1.0.0.
 // Runs fully offline against an in-process paid MCP server and facilitator.
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";

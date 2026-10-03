@@ -61,3 +61,25 @@ describe("cli arguments", () => {
     expect(() => parseArgs(["--run", "--confirm", "--arm", "treatment"])).toThrow();
   });
 });
+
+describe("acceptance test vs the release actually sold", () => {
+  // Regression: v2 installed the acceptance test from the task's 1.0.0 release, but the resolver
+  // sold 1.1.0, whose copy of the same test file differed by a comment. applyBundle refused the
+  // create with a conflict, so every treatment run fell back to writing the integration by hand.
+  it("applies every version of the task's release line onto a prepared workspace without conflict", async () => {
+    const { applyBundle } = await import("@lemma/core/node");
+    for (const task of TASKS) {
+      if (task.acceptance.kind !== "release") continue;
+      const line = task.acceptance.release.split("@")[0];
+      const versions = catalog.listReleases().filter((r) => r.name === line);
+      expect(versions.length).toBeGreaterThan(0);
+      for (const r of versions) {
+        const ws = prepareWorkspace(task, catalog);
+        dirs.push(ws.dir);
+        const bundle = catalog.getBundle(r.id);
+        expect(bundle, r.id).toBeDefined();
+        await expect(applyBundle(ws.dir, bundle!, { dryRun: false }), `${task.id} -> ${r.id}`).resolves.toBeDefined();
+      }
+    }
+  });
+});

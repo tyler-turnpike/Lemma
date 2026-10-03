@@ -1,4 +1,4 @@
-// Added by Lemma capability release x402-mcp-client@1.1.0.
+// Added by Lemma capability release x402-mcp-client@1.0.0.
 // Adapted from the x402 MCP client integration (x402-foundation/x402, Apache-2.0).
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { x402Client } from "@x402/core/client";

@@ -1,4 +1,4 @@
-// Added by Lemma capability release x402-mcp-server@1.1.0.
+// Added by Lemma capability release x402-mcp-server@1.0.0.
 // Adapted from the x402 MCP server integration (x402-foundation/x402, Apache-2.0).
 import { HTTPFacilitatorClient, x402ResourceServer, type FacilitatorClient } from "@x402/core/server";
 import type { Network, PaymentRequirements } from "@x402/core/types";
