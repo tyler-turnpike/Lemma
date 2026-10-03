@@ -244,4 +244,17 @@ describe("static dashboard", () => {
     expect((await app.request("/api/v1/nope")).status).toBe(404);
     expect((await app.request("/../etc/passwd")).status).toBe(200); // normalized to SPA shell, never a file outside root
   });
+
+  it("answers missing files with a real 404 instead of the SPA shell", async () => {
+    for (const path of ["/robots.txt", "/og.png", "/dl/lemma-mcp-9.9.9.tgz", "/assets/missing.js", "/dl"]) {
+      expect((await app.request(path)).status, path).toBe(404);
+    }
+    expect((await app.request("/connect")).status).toBe(200);
+  });
+
+  it("compresses the dashboard when the client accepts it", async () => {
+    writeFileSync(join(dir, "assets", "big.js"), "x".repeat(4096));
+    const res = await app.request("/assets/big.js", { headers: { "accept-encoding": "gzip" } });
+    expect(res.headers.get("content-encoding")).toBe("gzip");
+  });
 });

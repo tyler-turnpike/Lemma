@@ -1,5 +1,5 @@
-// Hardcoded session for the "Lemma in use" mock. Illustrative, labelled as such in the UI; the
-// settlement hash is the real featured purchase (content.ts `featured`).
+// Hardcoded session for the "Lemma in use" mock. Illustrative, labelled as such in the UI; release,
+// price, settlement hash, files and test counts are the real featured purchase (content.ts `featured`).
 
 import { featured } from "../../content.js";
 import { shortHex } from "../../lib/format.js";
@@ -28,10 +28,10 @@ export const mockStatus = {
 export const mockSteps: readonly MockStep[] = [
   { delay: 400, line: { kind: "prompt", text: "Add x402 payments on Arbitrum Sepolia to this MCP server" } },
   { delay: 1900, line: { kind: "tool", name: "lemma_preview", args: "task=x402-paywall-mcp-server" } },
-  { delay: 700, line: { kind: "output", label: "profile", text: "typescript · mcp-sdk 1.30 · hono 4 · source not sent" } },
+  { delay: 700, line: { kind: "output", label: "profile", text: "typescript · mcp-sdk 1.30.1 · zod 4.6.5 · source not sent" } },
   { delay: 800, line: { kind: "card" } },
-  { delay: 1200, line: { kind: "tool", name: "lemma_buy_resolution", args: "release=x402-mcp-server@1.0.0" } },
-  { delay: 600, line: { kind: "ok", text: "spend policy", detail: "0.12 ≤ 0.25 per resolution · today 0.12 / 1.00 USDC" } },
+  { delay: 1200, line: { kind: "tool", name: "lemma_buy_resolution", args: `release=${featured.release}` } },
+  { delay: 600, line: { kind: "ok", text: "spend policy", detail: `${featured.priceUsdc} ≤ 0.25 per resolution · today ${featured.priceUsdc} / 1.00 USDC` } },
   { delay: 700, line: { kind: "ok", text: "x402 settled", detail: `tx ${shortHex(featured.settlementTx)} · arbitrum-sepolia` } },
   { delay: 800, line: { kind: "tool", name: "lemma_apply_resolution", args: "--preview" } },
   {
@@ -39,28 +39,27 @@ export const mockSteps: readonly MockStep[] = [
     line: {
       kind: "diff",
       files: [
-        { path: "src/payments.ts", add: 52, del: 0 },
-        { path: "src/server.ts", add: 21, del: 3 },
-        { path: "test/paywall.test.ts", add: 11, del: 0 },
-        { path: "package.json", add: 2, del: 0 },
+        { path: "src/lemma/x402-paywall.ts", add: 89, del: 0 },
+        { path: "src/server.ts", add: 7, del: 5 },
+        { path: "test/lemma-x402-paywall.test.ts", add: 89, del: 0 },
       ],
     },
   },
-  { delay: 700, line: { kind: "ok", text: "applied atomically", detail: "4 files · +86 −3" } },
+  { delay: 700, line: { kind: "ok", text: "applied atomically", detail: "3 files · +185 −5" } },
   { delay: 800, line: { kind: "tool", name: "lemma_verify_adoption", args: "recipe=pinned" } },
-  { delay: 900, line: { kind: "ok", text: "acceptance tests", detail: "12 / 12 passed" } },
-  { delay: 600, line: { kind: "ok", text: "Adoption Receipt signed", detail: "warranty signed · 72h claim window" } },
+  { delay: 900, line: { kind: "ok", text: "acceptance tests", detail: "4 / 4 passed" } },
+  { delay: 600, line: { kind: "ok", text: "Adoption Receipt signed", detail: "warranty active · 72h claim window" } },
 ];
 
 export const decisionCard = {
   decision: "REUSE",
-  release: "x402-mcp-server@1.0.0",
+  release: featured.release,
   rows: [
-    ["Match", "exact fixture · ts-mcp-hono"],
-    ["Price", "0.12 USDC"],
-    ["Benchmark", "−75% tokens · cost not validated"],
+    ["Match", "exact pins · mcp-sdk 1.30.1"],
+    ["Price", `${featured.priceUsdc} USDC · quoted per request`],
+    ["Evidence", "lemma-bench-v1 · −72% tokens"],
     ["Warranty", "bonded · 72h claim"],
-    ["Limits", "Node ≥ 22 · Hono 4.x"],
+    ["Limits", "testnet · paid tools need inputSchema"],
   ],
   footnote: "Arbitrum Sepolia testnet",
 } as const;

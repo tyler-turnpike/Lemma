@@ -35,20 +35,20 @@ const chips: Record<CardKey, ReactNode> = {
   spend: (
     <Chip>
       <div className="flex justify-between">
-        <span className="font-mono text-fg">0.12 USDC</span>
+        <span className="font-mono text-fg">0.005 USDC</span>
         <span className="text-muted">cap 0.25</span>
       </div>
       <div className="mt-4 h-1 rounded-full bg-[#243234]">
-        <div className="h-full w-[48%] rounded-full bg-fg" />
+        <div className="h-full w-[3%] rounded-full bg-fg" />
       </div>
-      <p className="mt-3 text-xs text-muted">Today 0.12 / 1.00 USDC</p>
+      <p className="mt-3 text-xs text-muted">Today 0.005 / 1.00 USDC</p>
     </Chip>
   ),
   warranty: (
     <Chip>
       <div className="flex justify-between">
         <span className="text-fg">Refund credit</span>
-        <span className="font-mono text-fg">0.12 USDC</span>
+        <span className="font-mono text-fg">= amount paid</span>
       </div>
       <p className="mt-1 text-muted">From provider bond · 72h window</p>
       <p className="mt-4 flex items-center gap-2 text-xs text-muted">

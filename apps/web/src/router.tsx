@@ -10,6 +10,7 @@ export type Route =
   | { readonly name: "resolution-lookup" }
   | { readonly name: "benchmark" }
   | { readonly name: "status" }
+  | { readonly name: "connect" }
   | { readonly name: "not-found" };
 
 export function matchRoute(pathname: string): Route {
@@ -18,6 +19,7 @@ export function matchRoute(pathname: string): Route {
   if (path === "/catalog") return { name: "catalog" };
   if (path === "/benchmark") return { name: "benchmark" };
   if (path === "/status") return { name: "status" };
+  if (path === "/connect") return { name: "connect" };
   if (path === "/resolutions") return { name: "resolution-lookup" };
   const resolution = /^\/resolutions\/([^/]{1,200})$/.exec(path);
   if (resolution?.[1] !== undefined) {

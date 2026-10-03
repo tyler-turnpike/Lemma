@@ -10,7 +10,7 @@ const BLOB = `${REPO}/blob/${BRANCH}`;
 /** Static outbound destinations (github.com and sepolia.arbiscan.io; see lib/links.ts for the allowlist). */
 export const links = {
   repo: TREE,
-  docs: `${TREE}#readme`,
+  docs: `${BLOB}/docs/README.md`,
   bridge: `${BLOB}/apps/bridge/README.md`,
   securityModel: `${BLOB}/docs/security-model.md`,
   benchmarkProtocol: `${BLOB}/docs/benchmark-protocol.md`,
@@ -19,16 +19,19 @@ export const links = {
 } as const;
 
 /**
- * A real paid resolution on the production server (Arbitrum Sepolia, settled, receipt passed),
- * plus a real bond refund from the warranty registry. All three resolve on Arbiscan.
+ * A real paid resolution on the production server (Arbitrum Sepolia): x402 settlement, warranty
+ * activated on chain, acceptance tests passed (4/4, 3 files). `refundTx` is a real bond refund from
+ * the same registry (an earlier, deliberately failed adoption). All resolve on Arbiscan.
  */
 export const featured = {
-  resolutionId: "0x62206062a3d206a012817992812e8cee0b5b05d7e885b3e4c347db23dbb7fdb2",
-  release: "x402-mcp-server@1.0.0",
-  settlementTx: "0x7e8d2c2f4c69cb65121f70d948382624a7e041cd5bbedc4b12a387dc1305a381",
+  resolutionId: "0xcfc9ba00d23811b57fbdf25b3883981da5c72c6ee574887c26cc856ccf7b14cc",
+  release: "x402-mcp-server@1.1.0",
+  settlementTx: "0x279820c5c0b8abc0840c3f498a15e4fd86f4aef0a9d4f497ee49f1a2a5acd643",
+  activationTx: "0x8743c7436ab46a6f1df2fb0a529d0191f9120d11983770189b2949e579ea2af5",
   refundTx: "0x4ce2d7730211aa1e37604ed5adccc9803a35ec487379eed61c87887fed9bc1ce",
   registry: "0x45Ae8799dF4C0878AD22CFe7040383F25f046d56",
-  price: "0.12 USDC",
+  priceUsdc: "0.005",
+  price: "0.005 USDC",
 } as const;
 
 export const featuredPath = `/resolutions/${featured.resolutionId}`;
@@ -41,21 +44,22 @@ export interface NavLink {
 export const nav = {
   links: [
     { label: "Catalog", href: "/catalog" },
+    { label: "Resolutions", href: "/resolutions" },
     { label: "Benchmark", href: "/benchmark" },
     { label: "Status", href: "/status" },
     { label: "GitHub", href: links.repo },
   ] satisfies readonly NavLink[],
-  cta: { label: "Get started", href: links.bridge } satisfies NavLink,
+  cta: { label: "Connect your agent", href: "/connect" } satisfies NavLink,
   menu: { open: "Open menu", close: "Close menu" },
 } as const;
 
 export const hero = {
   chip: "Live on Arbitrum Sepolia",
   headline: ["Verified integrations", "for coding agents"],
-  lede: "Before your agent writes integration code, it asks Lemma. If a verified patch fits your repo, it pays a few cents in USDC over x402 on Arbitrum, applies it, and gets a bonded warranty: if it fails, the contract refunds from the provider's bond.",
+  lede: "Before your agent writes integration code, it asks Lemma. If a verified patch fits your repo, it pays a price quoted from measured savings (from half a cent) in USDC over x402 on Arbitrum, applies it, and gets a bonded warranty: if it fails, the contract refunds from the provider's bond.",
   primary: { label: "See a live purchase", href: featuredPath } satisfies NavLink,
   secondary: { label: "View on GitHub", href: links.repo } satisfies NavLink,
-  tertiary: { label: "Install the bridge", href: links.bridge } satisfies NavLink,
+  tertiary: { label: "Connect your agent", href: "/connect" } satisfies NavLink,
 } as const;
 
 /**
@@ -91,7 +95,7 @@ export const howItWorks = {
   live: "Live",
   steps: [
     { key: "preview", title: "Preview", body: "Free. The bridge sends an allowlisted repo profile and Lemma answers whether a verified release fits.", code: "lemma_preview" },
-    { key: "pay", title: "Pay", body: "If it fits, the bridge pays over x402 in USDC on Arbitrum, inside per-purchase and daily caps.", code: "x402 · 0.12 USDC ≤ cap" },
+    { key: "pay", title: "Pay", body: "If it fits, the bridge pays over x402 in USDC on Arbitrum, inside per-purchase and daily caps.", code: "x402 · 0.005 USDC ≤ cap" },
     { key: "apply", title: "Apply", body: "The patch is applied atomically, then the release's pinned acceptance tests run locally.", code: "patch + pinned tests" },
     { key: "warranty", title: "Warranty", body: "A provider-signed voucher activates a bonded warranty. A confirmed failure is refunded from the bond.", code: "activateResolution(voucher)" },
   ],
@@ -108,8 +112,8 @@ export const guarantees = {
   lede: "Your code stays local, your agent cannot overspend, and a failed adoption costs the provider, not you.",
   cards: [
     { key: "privacy", title: "Your source stays local", body: "The bridge sends an allowlisted profile: languages, versions and a lockfile digest. Never your code.", href: links.securityModel },
-    { key: "spend", title: "Caps the model can't move", body: "Per-resolution and daily limits are checked in code before anything is signed. No prompt can raise them.", href: links.bridge },
-    { key: "warranty", title: "Bonded warranty", body: "Each paid resolution reserves provider bond. An evaluator-confirmed failure within 72 hours is refunded from it.", href: links.economics },
+    { key: "spend", title: "Caps the model can't move", body: "Per-resolution and daily limits are checked in code before anything is signed. No prompt can raise them.", href: "/connect" },
+    { key: "warranty", title: "Bonded warranty", body: "Each paid resolution reserves its full price from the provider's bond. An evaluator-confirmed failure within 72 hours is refunded from it.", href: links.economics },
   ],
   learnMore: "Learn more",
 } as const;
@@ -122,7 +126,7 @@ export const whyArbitrum = {
     {
       key: "payments",
       title: "Cent-level payments",
-      body: "A 0.12 USDC purchase settles over x402 on Arbitrum for a fraction of a cent of gas, so per-task pricing is viable.",
+      body: "A half-cent USDC purchase settles over x402 on Arbitrum for a fraction of a cent of gas, so pricing each task by what it saves is viable.",
       linkLabel: "Featured settlement on Arbiscan",
     },
     {
@@ -142,14 +146,53 @@ export const whyArbitrum = {
 
 export const closing = {
   headline: ["Reuse what's proven,", "with recourse when it isn't"],
-  cta: { label: "Install the bridge", href: links.bridge } satisfies NavLink,
+  cta: { label: "Connect your agent", href: "/connect" } satisfies NavLink,
   secondary: { label: "See a live purchase", href: featuredPath } satisfies NavLink,
+} as const;
+
+export const connect = {
+  title: "Connect · Lemma",
+  label: "Connect",
+  headline: ["Connect Lemma", "to your coding agent"],
+  lede: "One command installs the Lemma bridge as a local MCP server. It runs on your machine, holds its own testnet wallet, and never sends your source code.",
+  steps: { install: "1 · Install", fund: "2 · Fund the wallet", ask: "3 · Ask your agent" },
+  agentsLabel: "Choose your agent",
+  copy: "Copy",
+  copied: "Copied",
+  agents: {
+    cursor: { label: "Cursor", button: "Add to Cursor", note: "Opens Cursor and asks you to confirm the server." },
+    vscode: { label: "VS Code", button: "Install in VS Code", note: "Opens VS Code's MCP install prompt (Copilot agent mode)." },
+    claude: { label: "Claude Code", note: "Run in your project directory." },
+    codex: { label: "Codex", note: "Run once, or add the TOML to ~/.codex/config.toml.", toml: "Or in config.toml" },
+    goose: { label: "Goose", button: "Add to Goose", note: "Opens Goose and asks you to confirm the extension." },
+    other: { label: "Other", note: "Windsurf, Zed, Cline and any client that reads an mcpServers JSON." },
+  },
+  fund: {
+    body: "On first run the bridge creates a burner wallet in ~/.lemma/wallet.json (readable only by you). Ask your agent to call lemma_wallet: it prints the address and balances. Then send it test funds:",
+    usdc: "Test USDC (Circle faucet, pick Arbitrum Sepolia)",
+    eth: "Arbitrum Sepolia ETH for gas",
+    caps: "Spending is capped in code at 0.25 USDC per resolution and 1.00 USDC per day. Testnet only: no real money moves.",
+  },
+  ask: {
+    body: "Lemma is used before your agent writes integration code. Try, in a TypeScript MCP server repo:",
+    prompt: "Add an x402 paywall to this MCP server. Check Lemma first.",
+    after: "The agent previews for free, and pays only if a verified release fits your repo. You can watch the record on the resolutions page.",
+  },
+  never: {
+    title: "What the bridge never does",
+    points: [
+      "Send your source: previews carry an allowlisted profile (languages, versions, lockfile digest).",
+      "Spend past its caps: limits are checked in code before anything is signed.",
+      "Use a key from an install link: no link on this page contains a secret.",
+    ],
+  },
+  source: "Bridge source and README",
 } as const;
 
 export const footer = {
   columns: [
-    { title: "Product", links: [{ label: "Catalog", href: "/catalog" }, { label: "Status", href: "/status" }] },
-    { title: "Developers", links: [{ label: "Docs", href: links.docs }, { label: "GitHub", href: links.repo }] },
+    { title: "Product", links: [{ label: "Catalog", href: "/catalog" }, { label: "Resolutions", href: "/resolutions" }, { label: "Status", href: "/status" }] },
+    { title: "Developers", links: [{ label: "Connect", href: "/connect" }, { label: "Docs", href: links.docs }, { label: "GitHub", href: links.repo }] },
     { title: "Project", links: [{ label: "Benchmark", href: "/benchmark" }, { label: "Security model", href: links.securityModel }] },
   ],
   copyright: "© 2026 Lemma",
@@ -187,12 +230,17 @@ export const dashboard = {
     label: "Catalog",
     headline: ["Capability Releases,", "curated and bonded"],
     lede: "Each release is a reviewed integration route pinned to an upstream commit, with a price, a provider bond and a claim window. Previews are free; you pay only when one fits your repository.",
+    earlier: {
+      title: "Earlier versions (not sold)",
+      body: "Same payload, earlier price. 1.0.0 was priced at 0.12 USDC before it was measured; the benchmark showed that price exceeded the saving, so 1.1.0 replaced it at a price derived from the measurement. Kept here so past purchases stay inspectable.",
+    },
     empty: { title: "No releases published", body: "The catalog is empty. Nothing can be purchased until a release is reviewed and published." },
     evidence: {
       provisional: "Provisional — not benchmarked",
       benchmarked: "Benchmarked",
-      published: "Benchmark results are published (verdict: cost target not met).",
+      published: "The price is set from this measured saving, capped at 30% of it.",
       publishedLink: "See benchmark",
+      superseded: "Superseded · not sold",
       livePurchase: "Live purchase on testnet",
     },
     fields: {
@@ -220,9 +268,10 @@ export const dashboard = {
       placeholder: "0x… 32-byte resolution id",
       submit: "Open",
       invalid: "A resolution id is 0x followed by 64 hex characters.",
+      another: "Look up another",
       demo: {
         label: "Try the live demo resolution",
-        body: "A real purchase on the production server: 0.12 test USDC settled on Arbitrum Sepolia, warranty voucher signed, adoption receipt passed.",
+        body: "A real purchase on the production server: 0.005 test USDC settled on Arbitrum Sepolia, warranty activated on chain, acceptance tests passed.",
         cta: "Open it",
       },
     },

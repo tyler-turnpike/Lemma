@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc -b",
-    "bundle": "vite build",
+    "bundle": "NODE_ENV=production vite build",
     "typecheck": "tsc -b",
     "test": "vitest run",
     "dev": "vite"

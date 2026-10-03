@@ -27,8 +27,10 @@ export function LoadingState({ rows = 3, label = copy.loading }: { readonly rows
 }
 
 /** Centered message block used for empty, error and offline states. */
-export function MessageState({ title, body, children, tag, state }: {
+export function MessageState({ title, body, children, tag, state, heading = false }: {
   readonly title: string;
+  /** Render the title as the page's h1 (pages with no other header). */
+  readonly heading?: boolean;
   readonly body: ReactNode;
   readonly children?: ReactNode;
   readonly tag?: string;
@@ -37,7 +39,7 @@ export function MessageState({ title, body, children, tag, state }: {
   return (
     <div data-state={state} className="rounded-md border border-line bg-card px-6 py-14 text-center md:py-20">
       {tag === undefined ? null : <p className="font-mono text-xs text-faint">{tag}</p>}
-      <p className="mt-2 text-xl text-fg">{title}</p>
+      {heading ? <h1 className="mt-2 text-xl text-fg">{title}</h1> : <p className="mt-2 text-xl text-fg">{title}</p>}
       <div className="mx-auto mt-3 max-w-lg text-[0.9375rem] leading-relaxed text-muted">{body}</div>
       {children === undefined ? null : <div className="mt-8 flex flex-wrap justify-center gap-3">{children}</div>}
     </div>
@@ -60,10 +62,12 @@ export function RetryButton({ onRetry }: { readonly onRetry: () => void }) {
  * Generic failure presentation. Pages handle not_found / invalid_input themselves when the
  * message should be specific; everything else lands here.
  */
-export function ErrorState({ error, onRetry, notFound }: {
+export function ErrorState({ error, onRetry, notFound, notFoundActions }: {
   readonly error: ApiFailure;
   readonly onRetry?: () => void;
   readonly notFound?: { readonly title: string; readonly body: string };
+  /** Ways forward shown under a not-found or invalid-input message. */
+  readonly notFoundActions?: ReactNode;
 }) {
   const retry = onRetry === undefined ? undefined : <RetryButton onRetry={onRetry} />;
   switch (error.kind) {
@@ -75,7 +79,11 @@ export function ErrorState({ error, onRetry, notFound }: {
       );
     case "not_found":
     case "invalid_input":
-      return <MessageState state={error.kind} tag="404" title={notFound?.title ?? "Not found"} body={notFound?.body ?? ""} />;
+      return (
+        <MessageState state={error.kind} tag={error.kind === "not_found" ? "404" : "400"} title={notFound?.title ?? "Not found"} body={notFound?.body ?? ""}>
+          {notFoundActions}
+        </MessageState>
+      );
     case "rate_limited":
       return (
         <MessageState state="rate_limited" tag="429" title={copy.rateLimited.title} body={copy.rateLimited.body}>

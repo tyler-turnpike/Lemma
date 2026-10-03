@@ -8,6 +8,7 @@ import { Badge } from "../components/dashboard/Badge.js";
 import { DataList, ExternalLink, Hash } from "../components/dashboard/Fields.js";
 import { DashboardShell, PageHeader, Panel } from "../components/dashboard/Shell.js";
 import { ErrorState, LoadingState, MessageState } from "../components/dashboard/States.js";
+import { PillLink } from "../components/PillLink.js";
 import { dashboard, featured, featuredPath } from "../content.js";
 import { formatDateTime, formatUsdcAtomic, unixSecondsToIso } from "../lib/format.js";
 import { arbiscanAddress, arbiscanTx } from "../lib/links.js";
@@ -51,7 +52,7 @@ export function warrantyState(summary: ResolutionSummary, now: number): { readon
   }
   return open
     ? { label: "Activation window open", tone: "neutral", detail: `Activation possible until ${formatDateTime(deadline)}.` }
-    : { label: "Activation deadline passed", tone: "neutral", detail: `The voucher could be activated until ${formatDateTime(deadline)}.` };
+    : { label: "Activation window closed", tone: "neutral", detail: `Vouchers are activated right after purchase; this one could be activated until ${formatDateTime(deadline)}. The registry on Arbiscan records whether it was.` };
 }
 
 const outcomeTone: Record<AdoptionOutcome, Tone> = { passed: "success", failed: "strong", abandoned: "neutral" };
@@ -221,16 +222,35 @@ export function ResolutionView({ id, state, onRetry, now = Date.now() }: {
       </PageHeader>
       <div className="mt-16 md:mt-24">
         {!valid ? (
-          <MessageState state="invalid_input" tag="400" title={copy.invalid.title} body={copy.invalid.body} />
+          <MessageState state="invalid_input" tag="400" title={copy.invalid.title} body={copy.invalid.body}>
+            <WaysForward />
+          </MessageState>
         ) : state.status === "loading" ? (
           <LoadingState rows={5} />
         ) : state.status === "error" ? (
-          <ErrorState error={state.error} notFound={state.error.kind === "invalid_input" ? copy.invalid : copy.notFound} {...(onRetry === undefined ? {} : { onRetry })} />
+          <ErrorState
+            error={state.error}
+            notFound={state.error.kind === "invalid_input" ? copy.invalid : copy.notFound}
+            notFoundActions={<WaysForward />}
+            {...(onRetry === undefined ? {} : { onRetry })}
+          />
         ) : (
           <ResolutionDetail record={state.data} now={now} />
         )}
       </div>
     </DashboardShell>
+  );
+}
+
+/** Dead ends get two ways out: another lookup, or the live demo resolution. */
+function WaysForward() {
+  return (
+    <>
+      <PillLink href="/resolutions" variant="secondary">
+        {copy.lookup.another}
+      </PillLink>
+      <PillLink href={featuredPath}>{copy.lookup.demo.label}</PillLink>
+    </>
   );
 }
 
@@ -280,7 +300,7 @@ export function ResolutionLookupPage() {
           </button>
         </div>
         {invalid ? (
-          <p id="resolution-id-error" className="mt-3 text-sm text-fg">
+          <p id="resolution-id-error" role="alert" className="mt-3 text-sm text-fg">
             {copy.lookup.invalid}
           </p>
         ) : null}

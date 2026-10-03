@@ -6,7 +6,7 @@ import { dashboard } from "../content.js";
 export function NotFoundPage() {
   return (
     <DashboardShell active={null}>
-      <MessageState state="not-found" tag="404" title={dashboard.notFound.title} body={dashboard.notFound.body}>
+      <MessageState state="not-found" tag="404" heading title={dashboard.notFound.title} body={dashboard.notFound.body}>
         <PillLink href="/">{dashboard.notFound.cta}</PillLink>
       </MessageState>
     </DashboardShell>

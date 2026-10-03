@@ -1,4 +1,6 @@
+import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { prerender } from "react-dom/static";
 import { describe, expect, it, vi } from "vitest";
 
 import { ApiError, getJson, probe, resolveApiBase } from "../src/api/client.js";
@@ -8,7 +10,7 @@ import { dashboard, featured, links } from "../src/content.js";
 import { arbiscanAddress, arbiscanTx, githubCommit, safeExternalHref } from "../src/lib/links.js";
 import { formatDuration, formatUsdcAtomic } from "../src/lib/format.js";
 import { BenchmarkView } from "../src/pages/BenchmarkPage.js";
-import { CatalogView } from "../src/pages/CatalogPage.js";
+import { CatalogView, splitCurrent } from "../src/pages/CatalogPage.js";
 import { ResolutionView, warrantyState } from "../src/pages/ResolutionPage.js";
 import { StatusView } from "../src/pages/StatusPage.js";
 import { matchRoute } from "../src/router.js";
@@ -24,6 +26,12 @@ import statusJson from "./fixtures/status.json";
 const loading = { status: "loading" } as const;
 const offline = { status: "error", error: { kind: "offline" } } as const;
 const ready = <T,>(data: T) => ({ status: "ready", data }) as const;
+
+/** Renders after lazy routes resolve (renderToStaticMarkup would stop at the Suspense fallback). */
+async function renderComplete(node: ReactNode): Promise<string> {
+  const { prelude } = await prerender(node);
+  return new Response(prelude).text();
+}
 
 /** All href attribute values in rendered markup. */
 function hrefs(html: string): string[] {
@@ -101,15 +109,16 @@ describe("router", () => {
     expect(matchRoute("/catalog/")).toEqual({ name: "catalog" });
     expect(matchRoute("/benchmark")).toEqual({ name: "benchmark" });
     expect(matchRoute("/status")).toEqual({ name: "status" });
+    expect(matchRoute("/connect")).toEqual({ name: "connect" });
     expect(matchRoute("/resolutions")).toEqual({ name: "resolution-lookup" });
     expect(matchRoute("/resolutions/0xabc")).toEqual({ name: "resolution", id: "0xabc" });
     expect(matchRoute("/resolutions/a/b")).toEqual({ name: "not-found" });
     expect(matchRoute("/nope")).toEqual({ name: "not-found" });
   });
 
-  it("server-renders each route in its loading state with nav links routed", () => {
+  it("server-renders each route in its loading state with nav links routed", async () => {
     for (const path of ["/catalog", "/benchmark", "/status", `/resolutions/0x${"ab".repeat(32)}`]) {
-      const html = renderToStaticMarkup(<App path={path} />);
+      const html = await renderComplete(<App path={path} />);
       expect(html, path).toContain('data-state="loading"');
       expect(html).toContain('href="/catalog"');
       expect(html).toContain('href="/status"');
@@ -175,24 +184,35 @@ describe("catalog view", () => {
       expect(html).toContain(`https://github.com/x402-foundation/x402/commit/${release.provenance.commit}`);
     }
     expect(html).toContain("0.12 USDC");
+    expect(html).toContain("0.005 USDC");
     expect(html).toContain("72 hours");
     expect(html).toContain("Apr 1, 2027");
     expect(html).toContain("Apache-2.0");
-    expect(html).toContain(dashboard.catalog.evidence.provisional);
+    expect(html).toContain(dashboard.catalog.evidence.superseded);
     expect(html).toContain(dashboard.catalog.evidence.published);
     expect(html).not.toContain("bg-mint-soft");
+    // Current versions first; superseded ones collapse below, after the "earlier versions" summary.
+    expect(html).toContain("2 releases on sale");
+    expect(html.indexOf('id="release-x402-mcp-server@1.1.0"')).toBeLessThan(html.indexOf(dashboard.catalog.earlier.title));
+    expect(html.indexOf('id="release-x402-mcp-server@1.0.0"')).toBeGreaterThan(html.indexOf(dashboard.catalog.earlier.title));
     // Only the release that was actually bought links to the live purchase.
     expect(html.split(dashboard.catalog.evidence.livePurchase).length - 1).toBe(1);
     expect(html).toContain(`href="/resolutions/${featured.resolutionId}"`);
     expectOnlyAllowedLinks(html);
   });
 
-  it("marks benchmarked releases with the success badge", () => {
+  it("labels benchmarked releases with their evidence version, not a success badge", () => {
     const r = data.releases[0]!;
     const benchmarked = { ...r, evidence: { status: "benchmarked" as const, benchmarkVersion: "v1", expectedSavingAtomic: "500000", expectedTokenSaving: 1000 } };
     const html = renderToStaticMarkup(<CatalogView state={ready({ releases: [benchmarked] })} />);
-    expect(html).toContain(dashboard.catalog.evidence.benchmarked);
-    expect(html).toContain("bg-mint-soft");
+    expect(html).toContain(`${dashboard.catalog.evidence.benchmarked} · v1`);
+    expect(html).not.toContain("bg-mint-soft");
+  });
+
+  it("shows only the newest version of each line as on sale", () => {
+    const { current, earlier } = splitCurrent(data.releases);
+    expect(current.map((r) => r.id).sort()).toEqual(["x402-mcp-client@1.1.0", "x402-mcp-server@1.1.0"]);
+    expect(earlier.map((r) => r.id).sort()).toEqual(["x402-mcp-client@1.0.0", "x402-mcp-server@1.0.0"]);
   });
 
   it("escapes hostile release text", () => {
@@ -241,7 +261,7 @@ describe("resolution view", () => {
   it("derives warranty state honestly", () => {
     const noReceipt = parseResolution(pendingJson);
     expect(warrantyState(noReceipt, now).label).toBe("Activation window open");
-    expect(warrantyState(noReceipt, Date.parse("2030-01-01T00:00:00Z")).label).toBe("Activation deadline passed");
+    expect(warrantyState(noReceipt, Date.parse("2030-01-01T00:00:00Z")).label).toBe("Activation window closed");
     expect(warrantyState({ ...noReceipt, voucher: null, status: "pending" }, now).label).toBe("Not issued");
     expect(warrantyState({ ...noReceipt, receipts: { count: 1, latestOutcome: "failed", latestAt: null } }, now).label).toBe("Failure reported");
     const html = renderToStaticMarkup(<ResolutionView id={id} state={ready({ summary: noReceipt, receipts: { resolutionId: id, receipts: [] } })} now={now} />);

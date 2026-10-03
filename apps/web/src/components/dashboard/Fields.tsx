@@ -23,8 +23,18 @@ export function Hash({ value, href = null, full = false }: { readonly value: str
   const text = full ? value : shortHex(value, 10, 8);
   return (
     <span title={value} className="font-mono text-[0.8125rem] break-all">
-      {href === null ? <span className="text-fg">{text}</span> : <ExternalLink href={href}>{text}</ExternalLink>}
-      {text !== value ? <span className="sr-only"> ({value})</span> : null}
+      {/* Screen readers get the full value once; the shortened form is visual only. */}
+      {href === null ? (
+        <span className="text-fg">
+          <span aria-hidden={text !== value ? true : undefined}>{text}</span>
+          {text !== value ? <span className="sr-only">{value}</span> : null}
+        </span>
+      ) : (
+        <ExternalLink href={href}>
+          <span aria-hidden={text !== value ? true : undefined}>{text}</span>
+          {text !== value ? <span className="sr-only">{value}</span> : null}
+        </ExternalLink>
+      )}
     </span>
   );
 }

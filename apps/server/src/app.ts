@@ -9,6 +9,7 @@ import { serveStatic } from "@hono/node-server/serve-static";
 import type { FacilitatorClient } from "@x402/core/server";
 import { Hono, type Context } from "hono";
 import { bodyLimit } from "hono/body-limit";
+import { compress } from "hono/compress";
 import { cors } from "hono/cors";
 import { privateKeyToAccount } from "viem/accounts";
 import { z } from "zod";
@@ -312,9 +313,15 @@ export function createApp(deps: AppDeps): AppHandle {
         c.header("Cache-Control", c.req.path.startsWith("/assets/") ? "public, max-age=31536000, immutable" : "no-cache");
       }
     });
+    // Registered after the API routes, so only static files and the SPA shell are compressed.
+    app.use("/*", compress());
     app.use("/*", serveStatic({ root: webDir }));
     app.get("*", (c) => {
-      if (c.req.path.startsWith("/facilitator") || c.req.path.startsWith("/mcp")) return c.json({ error: { code: "not_found", message: "not found" } }, 404);
+      // Missing files (anything with an extension, downloads, API paths) are real 404s, never the SPA shell.
+      const path = c.req.path;
+      if (/^\/(facilitator|mcp|api|dl|assets)(\/|$)/.test(path) || /\.[A-Za-z0-9]{1,8}$/.test(path)) {
+        return c.json({ error: { code: "not_found", message: "not found" } }, 404);
+      }
       c.header("Cache-Control", "no-cache");
       return c.html(indexHtml);
     });

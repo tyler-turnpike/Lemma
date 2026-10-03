@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 
 import { ClosingCta } from "./components/ClosingCta.js";
 import { Footer } from "./components/Footer.js";
@@ -8,12 +8,16 @@ import { HowItWorks } from "./components/HowItWorks.js";
 import { LiveProof } from "./components/LiveProof.js";
 import { Nav } from "./components/Nav.js";
 import { WhyArbitrum } from "./components/WhyArbitrum.js";
-import { BenchmarkPage } from "./pages/BenchmarkPage.js";
-import { CatalogPage } from "./pages/CatalogPage.js";
 import { NotFoundPage } from "./pages/NotFoundPage.js";
-import { ResolutionLookupPage, ResolutionPage } from "./pages/ResolutionPage.js";
-import { StatusPage } from "./pages/StatusPage.js";
 import { matchRoute, usePathname, type Route } from "./router.js";
+
+// Dashboard pages load on demand so the landing page ships only what it renders.
+const BenchmarkPage = lazy(() => import("./pages/BenchmarkPage.js").then((m) => ({ default: m.BenchmarkPage })));
+const CatalogPage = lazy(() => import("./pages/CatalogPage.js").then((m) => ({ default: m.CatalogPage })));
+const ConnectPage = lazy(() => import("./pages/ConnectPage.js").then((m) => ({ default: m.ConnectPage })));
+const ResolutionPage = lazy(() => import("./pages/ResolutionPage.js").then((m) => ({ default: m.ResolutionPage })));
+const ResolutionLookupPage = lazy(() => import("./pages/ResolutionPage.js").then((m) => ({ default: m.ResolutionLookupPage })));
+const StatusPage = lazy(() => import("./pages/StatusPage.js").then((m) => ({ default: m.StatusPage })));
 
 function Landing() {
   return (
@@ -35,10 +39,17 @@ const titles: Record<Route["name"], string> = {
   "resolution-lookup": "Resolutions · Lemma",
   benchmark: "Benchmark · Lemma",
   status: "Status · Lemma",
+  connect: "Connect · Lemma",
   "not-found": "Not found · Lemma",
 };
 
-const navActive: Partial<Record<Route["name"], string>> = { catalog: "/catalog", benchmark: "/benchmark", status: "/status" };
+const navActive: Partial<Record<Route["name"], string>> = {
+  catalog: "/catalog",
+  benchmark: "/benchmark",
+  status: "/status",
+  resolution: "/resolutions",
+  "resolution-lookup": "/resolutions",
+};
 
 function Page({ route }: { readonly route: Route }) {
   switch (route.name) {
@@ -54,6 +65,8 @@ function Page({ route }: { readonly route: Route }) {
       return <BenchmarkPage />;
     case "status":
       return <StatusPage />;
+    case "connect":
+      return <ConnectPage />;
     case "not-found":
       return <NotFoundPage />;
   }
@@ -72,7 +85,9 @@ export function App({ path }: { readonly path?: string } = {}) {
     <>
       <Nav active={navActive[route.name] ?? null} />
       <main>
-        <Page route={route} />
+        <Suspense fallback={<div className="min-h-screen" />}>
+          <Page route={route} />
+        </Suspense>
       </main>
       <Footer />
     </>

@@ -68,13 +68,13 @@ describe("landing page", () => {
     expect(last?.kind === "ok" && text.includes(last.text)).toBe(true);
     expect(html).toContain(mock.illustrative);
     expect(html).not.toContain("0x9f3c");
-    expect(html).not.toContain("warranty active");
     expect(text).toContain(`${featured.settlementTx.slice(0, 6)}…${featured.settlementTx.slice(-4)}`);
   });
 
   it("states the benchmark honestly and drops the old pitch", () => {
     expect(html).toContain("Arbitrum Sepolia testnet");
-    expect(html).toContain("cost not validated");
+    expect(html).toContain("quoted per request");
+    expect(html).not.toContain("0.12");
     expect(html).toContain("75%");
     expect(html).toContain("All-in cost not yet lower");
     expect(html).not.toContain("Stop paying");
