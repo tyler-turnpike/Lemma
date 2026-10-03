@@ -8,15 +8,32 @@ const catalog = loadCatalog();
 const now = new Date("2026-10-02T12:00:00Z");
 const task = (kind: TaskRequest["kind"]): TaskRequest => ({ schemaVersion: "1", kind, network: "arbitrum-sepolia" });
 
+/** The catalog before the benchmarked 1.1.0 releases: provisional evidence only. */
+const provisionalOnly = catalog.listReleases().filter((r) => r.version === "1.0.0");
+
+/** At equal fit the resolver offers the newest version of a release line, so fixtures pinned to 1.0.0 resolve to 1.1.0. */
+const offeredFor = (release: string): string => {
+  const name = release.split("@")[0];
+  return catalog
+    .listReleases()
+    .filter((r) => r.name === name)
+    .map((r) => r.id)
+    .sort()
+    .at(-1)!;
+};
+
 describe("resolver against real fixtures", () => {
   for (const fixture of catalog.listFixtures()) {
     it(`${fixture.id} -> ${fixture.task}: ${fixture.expectedDecision}`, () => {
       const preview = resolve(task(fixture.task as TaskRequest["kind"]), catalog.fixtureProfile(fixture.id), catalog, now);
       expect(preview.decision, preview.reasons.join("\n")).toBe(fixture.expectedDecision);
       if (preview.decision === "reuse" || preview.decision === "adapt") {
-        expect(preview.release).toBe(fixture.release);
-        expect(preview.priceAtomic).toBe("120000");
-        expect(preview.evidence?.status).toBe("provisional");
+        expect(preview.release).toBe(offeredFor(fixture.release));
+        expect(preview.priceAtomic).toBe("5000");
+        expect(preview.evidence?.status).toBe("benchmarked");
+        expect(preview.evidence?.benchmarkVersion).toBe("lemma-bench-v1");
+        expect(preview.purchasable).toBe(true);
+        expect(preview.provisionalOverride).toBe(false);
         expect(preview.warranty?.claimWindowSeconds).toBe(259200);
       } else {
         expect(preview.priceAtomic).toBeNull();
@@ -30,16 +47,38 @@ describe("resolver against real fixtures", () => {
 describe("purchasability", () => {
   const exact = catalog.fixtureProfile("mcp-server-exact");
 
+  it("sells the benchmarked 1.1.0 releases without the provisional override", () => {
+    for (const [kind, fixture, saving] of [
+      ["x402-paywall-mcp-server", "mcp-server-exact", "23063"],
+      ["x402-paying-mcp-client", "mcp-client-exact", "18682"],
+    ] as const) {
+      const p = resolve(task(kind), catalog.fixtureProfile(fixture), catalog, now);
+      expect(p.decision).toBe("reuse");
+      expect(p.release).toMatch(/@1\.1\.0$/);
+      expect(p.priceAtomic).toBe("5000");
+      expect(p.evidence?.status).toBe("benchmarked");
+      expect(p.evidence?.benchmarkVersion).toBe("lemma-bench-v1");
+      expect(p.expectedSavingAtomic).toBe(saving);
+      expect(p.purchasable).toBe(true);
+      expect(p.provisionalOverride).toBe(false);
+      expect(p.reasons.join(" ")).toContain("price is at most 30% of the measured expected saving");
+      // The pricing rule itself: price * 100 <= saving * 30.
+      expect(BigInt(p.priceAtomic!) * 100n <= BigInt(p.expectedSavingAtomic!) * 30n).toBe(true);
+      expect(p.limitations.join(" ")).not.toContain("not yet benchmarked");
+    }
+  });
+
   it("is not purchasable with provisional evidence by default", () => {
-    const p = resolve(task("x402-paywall-mcp-server"), exact, catalog, now);
+    const p = resolve(task("x402-paywall-mcp-server"), exact, provisionalOnly, now);
     expect(p.decision).toBe("reuse");
+    expect(p.release).toBe("x402-mcp-server@1.0.0");
     expect(p.purchasable).toBe(false);
     expect(p.provisionalOverride).toBe(false);
     expect(p.reasons.join(" ")).toContain("no frozen benchmark");
   });
 
   it("allows the explicit testnet provisional override", () => {
-    const p = resolve(task("x402-paywall-mcp-server"), exact, catalog, now, { allowProvisional: true });
+    const p = resolve(task("x402-paywall-mcp-server"), exact, provisionalOnly, now, { allowProvisional: true });
     expect(p.purchasable).toBe(true);
     expect(p.provisionalOverride).toBe(true);
     expect(p.evidence?.status).toBe("provisional");
@@ -47,6 +86,7 @@ describe("purchasability", () => {
 
   const benchmarked = (saving: string): CapabilityRelease => ({
     ...catalog.listReleases().find((r) => r.id === "x402-mcp-server@1.0.0")!,
+    priceAtomic: "120000",
     evidence: { status: "benchmarked", benchmarkVersion: "bench-1", expectedSavingAtomic: saving, expectedTokenSaving: 50000 },
   });
 

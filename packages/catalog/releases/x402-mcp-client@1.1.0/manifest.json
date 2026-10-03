@@ -1,0 +1,107 @@
+{
+  "schemaVersion": "1",
+  "id": "x402-mcp-client@1.1.0",
+  "name": "x402-mcp-client",
+  "version": "1.1.0",
+  "title": "x402-paying MCP client with hard spending limits",
+  "summary": "Adds an x402-paying MCP client (@x402/mcp x402MCPClient with ExactEvmScheme) that pays USDC on Arbitrum Sepolia only to allowlisted recipients, within a per-call cap and a total budget enforced in code before any payment is signed.",
+  "taskKind": "x402-paying-mcp-client",
+  "network": "arbitrum-sepolia",
+  "supportedProfile": {
+    "languages": [
+      "typescript"
+    ],
+    "moduleSystems": [
+      "esm"
+    ],
+    "packageManagers": [
+      "npm",
+      "pnpm"
+    ],
+    "testRunners": [
+      "vitest"
+    ],
+    "requireLockfile": false,
+    "requiredFrameworks": [
+      "mcpSdk"
+    ],
+    "forbiddenFrameworks": [
+      "x402"
+    ],
+    "exact": {
+      "@modelcontextprotocol/sdk": "1.30.1",
+      "viem": "2.56.8",
+      "zod": "4.6.5"
+    },
+    "boundary": {
+      "@modelcontextprotocol/sdk": ">=1.25.0 <2.0.0",
+      "viem": ">=2.48.11 <3.0.0",
+      "zod": ">=4.0.0 <5.0.0"
+    }
+  },
+  "provenance": {
+    "upstreamRepo": "https://github.com/x402-foundation/x402",
+    "commit": "71eb9a55e081e7b81ba3046d0bd17c3eb9c7bf81",
+    "spdxLicense": "Apache-2.0",
+    "attribution": "x402 Foundation, x402 TypeScript SDK (@x402/core, @x402/evm, @x402/mcp 2.27.0; tag npm-@x402/mcp@v2.27.0, formerly coinbase/x402). Licensed under Apache-2.0.",
+    "modifications": "Composes the upstream x402MCPClient, x402Client policies and payment-creation hooks into a spend ledger that reserves budget synchronously before signing, restricts network, asset and recipient, adds a connectPayingAgent entry point to the agent, and adds an offline acceptance test against an in-process paid MCP server."
+  },
+  "patch": {
+    "operations": [
+      {
+        "op": "create",
+        "path": "src/lemma/x402-paying-client.ts"
+      },
+      {
+        "op": "modify",
+        "path": "src/agent.ts",
+        "baseSha256": "5faeaea4b8c949e9e1026b91f555321b6bc17c2e15af4a016842ba6402d20ea9"
+      },
+      {
+        "op": "create",
+        "path": "test/lemma-x402-paying-client.test.ts"
+      }
+    ],
+    "dependencyAdditions": {
+      "dependencies": {
+        "@x402/core": "2.27.0",
+        "@x402/evm": "2.27.0",
+        "@x402/mcp": "2.27.0"
+      },
+      "devDependencies": {}
+    }
+  },
+  "payloadDigest": "0x3a3706dac4ee7ab8ba55ad85bc52e4c3c47f6fa143f0b205f1468ec7ecf371db",
+  "acceptance": {
+    "argv": [
+      [
+        "npx",
+        "--no",
+        "vitest",
+        "run",
+        "test/lemma-x402-paying-client.test.ts"
+      ]
+    ],
+    "timeoutMs": 120000,
+    "env": [
+      "CI"
+    ]
+  },
+  "priceAtomic": "5000",
+  "bondAtomic": "120000",
+  "claimWindowSeconds": 259200,
+  "expiresAt": "2027-04-01T00:00:00Z",
+  "evidence": {
+    "status": "benchmarked",
+    "benchmarkVersion": "lemma-bench-v1",
+    "expectedSavingAtomic": "18682",
+    "expectedTokenSaving": 467660
+  },
+  "limitations": [
+    "Testnet only: Arbitrum Sepolia USDC, exact scheme, x402 protocol v2.",
+    "The spend ledger is in-memory; persist it to enforce a daily cap across process restarts.",
+    "A signed payment counts against the budget even if the response is lost (fail-closed).",
+    "The modify operation requires src/agent.ts to match the reviewed base byte for byte; drift stops application.",
+    "Savings measured on gpt-5.6-luna under lemma-bench-v1, 9 matched runs per arm (3 reps on this release's task)."
+  ]
+}

@@ -13,14 +13,17 @@ const exact = catalog.fixtureProfile("mcp-server-exact");
 const keys = makeKeys();
 const buyer = keys.buyer.address;
 
-function setup(options: { allowProvisional?: boolean; paid?: boolean; now?: () => Date } = {}) {
+/** The catalog as it was before the benchmarked 1.1.0 releases: provisional evidence only. */
+const provisionalOnly = { ...catalog, listReleases: () => catalog.listReleases().filter((r) => r.version === "1.0.0") };
+
+function setup(options: { allowProvisional?: boolean; paid?: boolean; now?: () => Date; catalog?: typeof catalog } = {}) {
   const repo = new MemoryRepository();
   const facilitator = new FakeFacilitator();
   const config = makeConfig(options.paid === false ? null : keys, { LEMMA_ALLOW_PROVISIONAL: options.allowProvisional === false ? "false" : "true" });
   const handle = createApp({
     config,
     repo,
-    catalog,
+    catalog: options.catalog ?? catalog,
     logger: silentLogger,
     webDistDir: null,
     facilitatorClient: facilitator,
@@ -48,7 +51,7 @@ describe("remote MCP over Streamable HTTP", () => {
     expect(toolJson(result)).toEqual(result.structuredContent);
     expect(preview.decision).toBe("reuse");
     expect(preview.purchasable).toBe(true);
-    expect(preview.priceAtomic).toBe("120000");
+    expect(preview.priceAtomic).toBe("5000");
     expect((await repo.getPreview(preview.previewId))?.preview).toEqual(preview);
     // Two identical previews in the same second still get distinct ids.
     const again = Preview.parse((await client.callTool({ name: "lemma_preview", arguments: { task, profile: exact } })).structuredContent);
@@ -84,9 +87,10 @@ describe("purchase gating (refuses before any payment is requested)", () => {
   });
 
   it("refuses a non-purchasable preview (provisional evidence without the override)", async () => {
-    const { app } = setup({ allowProvisional: false });
+    const { app } = setup({ allowProvisional: false, catalog: provisionalOnly });
     const client = await connectMcp(app);
     const preview = Preview.parse((await client.callTool({ name: "lemma_preview", arguments: { task, profile: exact } })).structuredContent);
+    expect(preview.release).toBe("x402-mcp-server@1.0.0");
     expect(preview.purchasable).toBe(false);
     const result = await client.callTool({ name: "lemma_purchase_resolution", arguments: { previewId: preview.previewId, buyer } });
     expect(toolJson(result)).toMatchObject({ error: { code: "not_purchasable" } });

@@ -115,12 +115,12 @@ describe("x402 purchase with a fake facilitator", () => {
   });
 
   it("persists settlement, resolution and voucher, and the read API never leaks the bundle", async () => {
-    const { repo, app, result, facilitator, free, paying } = await purchaseFlow();
+    const { repo, app, result, facilitator, free, paying, preview } = await purchaseFlow();
     const body = toolJson(result) as { resolution: { resolutionId: string } };
     const id = body.resolution.resolutionId;
     const record = await repo.getResolution(id);
     expect(record?.status).toBe("settled");
-    expect(await repo.getSettlement(facilitator.settleCalls[0]!.tx.toLowerCase())).toMatchObject({ resolutionId: id, amountAtomic: "120000" });
+    expect(await repo.getSettlement(facilitator.settleCalls[0]!.tx.toLowerCase())).toMatchObject({ resolutionId: id, amountAtomic: preview.priceAtomic });
     const res = await app.request(`/api/v1/resolutions/${id}`);
     expect(res.status).toBe(200);
     const text = await res.text();

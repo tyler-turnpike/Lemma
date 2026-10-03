@@ -2,15 +2,20 @@ import { cpSync, mkdtempSync, rmSync, symlinkSync, writeFileSync, readFileSync }
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { CATALOG_COMPONENT, CatalogError, fileSha256, loadCatalog } from "../src/index.js";
-import { bundleDigest, releaseIdFor, verifyBundleIntegrity } from "@lemma/core";
+import { bundleDigest, isPriceJustified, releaseIdFor, verifyBundleIntegrity } from "@lemma/core";
 import { describe, expect, it } from "vitest";
 
 const catalog = loadCatalog();
 
 describe("catalog loading", () => {
-  it("loads the two MVP releases", () => {
+  it("loads the MVP releases: the provisional 1.0.0 line and the benchmarked 1.1.0 line", () => {
     expect(CATALOG_COMPONENT.status).toBe("implemented");
-    expect(catalog.listReleases().map((r) => r.id)).toEqual(["x402-mcp-client@1.0.0", "x402-mcp-server@1.0.0"]);
+    expect(catalog.listReleases().map((r) => r.id)).toEqual([
+      "x402-mcp-client@1.0.0",
+      "x402-mcp-client@1.1.0",
+      "x402-mcp-server@1.0.0",
+      "x402-mcp-server@1.1.0",
+    ]);
   });
 
   it("binds manifests to deterministic, integrity-checked bundles", () => {
@@ -22,9 +27,34 @@ describe("catalog loading", () => {
       expect(verifyBundleIntegrity(loaded.bundle)).toEqual([]);
       expect(r.provenance.commit).toMatch(/^[0-9a-f]{40}$/);
       expect(r.provenance.spdxLicense).toBe("Apache-2.0");
+      expect(r.acceptance.argv.every((argv) => argv[0] === "npx" && argv[1] === "--no")).toBe(true);
+      expect(BigInt(r.bondAtomic) >= BigInt(r.priceAtomic)).toBe(true);
+    }
+  });
+
+  it("prices the 1.1.0 releases from the frozen lemma-bench-v1 measurement, within the 30% rule", () => {
+    // Medians from packages/benchmark/published/aggregate.json perTask, in atomic USDC.
+    // Server: the conservative of its two tasks (mcp-server-paywall-boundary, 0.033625 - 0.010562).
+    // Client: mcp-client-paying-exact (0.031621 - 0.012939).
+    const expected = {
+      "x402-mcp-server@1.1.0": { saving: "23063", tokens: 695013 },
+      "x402-mcp-client@1.1.0": { saving: "18682", tokens: 467660 },
+    } as const;
+    for (const [id, { saving, tokens }] of Object.entries(expected)) {
+      const r = catalog.getRelease(id)!.manifest;
+      expect(r.priceAtomic).toBe("5000");
+      expect(r.evidence).toEqual({ status: "benchmarked", benchmarkVersion: "lemma-bench-v1", expectedSavingAtomic: saving, expectedTokenSaving: tokens });
+      expect(isPriceJustified(BigInt(r.priceAtomic), BigInt(saving))).toBe(true);
+      expect(r.limitations.join(" ")).not.toContain("not yet benchmarked");
+    }
+  });
+
+  it("keeps the 1.0.0 releases as the provisional, 0.12 USDC line the live resolution references", () => {
+    for (const id of ["x402-mcp-server@1.0.0", "x402-mcp-client@1.0.0"]) {
+      const r = catalog.getRelease(id)!.manifest;
       expect(r.priceAtomic).toBe("120000");
       expect(r.evidence).toEqual({ status: "provisional", benchmarkVersion: null, expectedSavingAtomic: null, expectedTokenSaving: null });
-      expect(r.acceptance.argv.every((argv) => argv[0] === "npx" && argv[1] === "--no")).toBe(true);
+      expect(isPriceJustified(BigInt(r.priceAtomic), null)).toBe(false);
     }
   });
 
