@@ -104,4 +104,49 @@ describe("lemma_verify_adoption", () => {
     expect(r.receipt.testSummary).toMatchObject({ passed: 2, failed: 1, exitCode: 1 });
     expect(r.submitted).toBe(true);
   });
+
+  it("pays the quoted success fee after a pass, before submitting the receipt, and only once", async () => {
+    const { bridge, resolutionId, server, stateDir } = await purchased({ acceptance: passing, successFeeAtomic: "53000" });
+    await bridge.apply(resolutionId, true);
+    const r = await bridge.verifyAdoption(resolutionId);
+    expect(r.outcome).toBe("passed");
+    expect(r.successFee).toMatchObject({ status: "paid", amountUsdc: "0.053", previously: false });
+    expect(server.feesPaid).toEqual([{ resolutionId, amount: "53000" }]);
+    const order = (server.requests as Array<{ tool: string }>).map((q) => q.tool).filter((t) => t === "lemma_pay_success_fee" || t === "lemma_submit_receipt");
+    expect(order.at(-1)).toBe("lemma_submit_receipt");
+    expect(r.submitted).toBe(true);
+    expect((await new StateStore(stateDir).loadResolution(resolutionId))?.successFee?.amountAtomic).toBe("53000");
+
+    const again = await bridge.verifyAdoption(resolutionId);
+    expect(again.successFee).toMatchObject({ status: "paid", previously: true });
+    expect(server.feesPaid).toHaveLength(1);
+  });
+
+  it("pays no success fee when acceptance fails", async () => {
+    const { bridge, resolutionId, server } = await purchased({ acceptance: failing, successFeeAtomic: "53000" });
+    await bridge.apply(resolutionId, true);
+    const r = await bridge.verifyAdoption(resolutionId);
+    expect(r.outcome).toBe("failed");
+    expect(r.successFee).toEqual({ status: "none" });
+    expect(server.feesPaid).toHaveLength(0);
+    expect(r.submitted).toBe(true);
+  });
+
+  it("holds the passed receipt when the fee cannot be paid, and pays on the next verify", async () => {
+    const { bridge, resolutionId, server } = await purchased({ acceptance: passing, successFeeAtomic: "53000", feeMode: "reject-payment" });
+    await bridge.apply(resolutionId, true);
+    const held = await bridge.verifyAdoption(resolutionId);
+    expect(held.successFee.status).toBe("failed");
+    expect(held.submitted).toBe(false);
+    expect(server.receipts).toHaveLength(0);
+    server.options.feeMode = "normal";
+    const paid = await bridge.verifyAdoption(resolutionId);
+    expect(paid.successFee).toMatchObject({ status: "paid", previously: false });
+    expect(paid.submitted).toBe(true);
+  });
+
+  it("refuses to buy when the whole quote would exceed the per-resolution cap", async () => {
+    // 0.005 up front + 0.30 on success > the 0.25 cap: refused before anything is signed.
+    await expect(purchased({ acceptance: passing, priceAtomic: "5000", successFeeAtomic: "300000" })).rejects.toMatchObject({ code: "policy" });
+  });
 });

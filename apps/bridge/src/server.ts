@@ -70,16 +70,29 @@ export function createBridgeServer(bridge: Bridge, scrub: Scrubber, log: Logger)
         "Builds a profile of the workspace from allowlisted metadata only (package.json, lockfile digest; never source) and asks Lemma whether a verified, warranted resolution exists for the task. Free. Returns the decision (reuse/adapt/build/decline), price, warranty and whether local spend policy would allow buying.",
       inputSchema: {
         kind: z.enum(TASK_KINDS).describe("Task kind to resolve"),
+        model: z
+          .string()
+          .max(64)
+          .optional()
+          .describe("The model you (the agent) run on, e.g. gpt-5.6-terra. Optional; scales the quote to your expected saving."),
       },
     },
-    ({ kind }) =>
+    ({ kind, model }) =>
       tool(scrub, log, "lemma_preview", async () => {
-        const r = await bridge.preview(kind);
+        const r = await bridge.preview(kind, model);
         const p = r.preview;
+        const q = p.quote ?? null;
         const lines = [
           `Decision: ${p.decision}${p.release !== null ? ` (${p.release})` : ""}`,
           `previewId: ${p.previewId}`,
-          ...(r.local.priceUsdc !== null ? [`Price: ${r.local.priceUsdc} USDC; warranty bond ${p.warranty ? formatUsdc(BigInt(p.warranty.bondAtomic)) : "n/a"} USDC`] : []),
+          ...(r.local.priceUsdc !== null
+            ? [
+                q !== null && q.successFeeAtomic !== "0"
+                  ? `Price: ${r.local.priceUsdc} USDC now + ${formatUsdc(BigInt(q.successFeeAtomic))} USDC only if the acceptance tests pass (${q.captureBps / 100}% of your expected saving on ${q.model})`
+                  : `Price: ${r.local.priceUsdc} USDC`,
+                `Warranty: ${p.warranty ? formatUsdc(BigInt(p.warranty.bondAtomic)) : "n/a"} USDC provider bond; the up-front price is refunded if the adoption fails`,
+              ]
+            : []),
           ...p.reasons.slice(0, 5).map((x) => `- ${x}`),
           r.local.purchaseAllowedByLocalPolicy
             ? "Local policy: purchase allowed. Call lemma_buy_resolution with this previewId to buy."
@@ -152,6 +165,11 @@ export function createBridgeServer(bridge: Bridge, scrub: Scrubber, log: Logger)
         const t = r.receipt.testSummary;
         const lines = [
           `Acceptance ${r.outcome}: ${t.passed} passed, ${t.failed} failed, ${t.skipped} skipped (exit ${t.exitCode ?? "n/a"}, ${t.durationMs} ms)`,
+          ...(r.successFee.status === "paid"
+            ? [`Success fee: ${r.successFee.amountUsdc} USDC paid${r.successFee.txHash ? ` (tx ${r.successFee.txHash})` : ""}${r.successFee.previously ? " earlier" : ""}.`]
+            : r.successFee.status === "failed"
+              ? [`Success fee of ${r.successFee.amountUsdc} USDC not paid: ${r.successFee.reason}`]
+              : []),
           r.submitted ? `Signed receipt submitted (receiptId ${r.receiptId ?? "n/a"}).` : `Signed receipt saved locally but not submitted: ${r.submitError ?? "unknown error"}`,
         ];
         return { text: lines.join("\n"), data: r };

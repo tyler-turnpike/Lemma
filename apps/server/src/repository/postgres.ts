@@ -12,6 +12,7 @@ import {
   type Repository,
   type ResolutionRecord,
   type SettlementRecord,
+  type SuccessFeeRecord,
   type VoucherRecord,
 } from "./types.js";
 
@@ -182,6 +183,36 @@ export class PostgresRepository implements Repository {
     const rows = await this.db.select().from(t.vouchers).where(eq(t.vouchers.resolutionId, resolutionId.toLowerCase())).limit(1);
     const row = rows[0];
     return row === undefined ? undefined : { resolutionId: row.resolutionId as Hex, signed: row.voucher as SignedResolutionVoucher, createdAt: row.createdAt };
+  }
+
+  async saveSuccessFee(record: SuccessFeeRecord): Promise<SuccessFeeRecord> {
+    await this.db
+      .insert(t.successFees)
+      .values({ ...record, resolutionId: record.resolutionId.toLowerCase(), txHash: record.txHash.toLowerCase() })
+      .onConflictDoNothing({ target: t.successFees.resolutionId });
+    const stored = await this.getSuccessFee(record.resolutionId);
+    if (stored === undefined) throw new RepositoryConflictError("failed to store success fee");
+    return stored;
+  }
+
+  async getSuccessFee(resolutionId: string): Promise<SuccessFeeRecord | undefined> {
+    const rows = await this.db.select().from(t.successFees).where(eq(t.successFees.resolutionId, resolutionId.toLowerCase())).limit(1);
+    const row = rows[0];
+    return row === undefined
+      ? undefined
+      : { resolutionId: row.resolutionId as Hex, buyer: row.buyer as Hex, amountAtomic: row.amountAtomic, txHash: row.txHash as Hex, network: row.network, settledAt: row.settledAt };
+  }
+
+  async markDelinquent(input: { buyer: `0x${string}`; resolutionId: `0x${string}`; at: Date }): Promise<void> {
+    await this.db
+      .insert(t.delinquentBuyers)
+      .values({ buyer: input.buyer.toLowerCase(), resolutionId: input.resolutionId.toLowerCase(), markedAt: input.at })
+      .onConflictDoNothing({ target: t.delinquentBuyers.buyer });
+  }
+
+  async isDelinquent(buyer: string): Promise<boolean> {
+    const rows = await this.db.select().from(t.delinquentBuyers).where(eq(t.delinquentBuyers.buyer, buyer.toLowerCase())).limit(1);
+    return rows.length > 0;
   }
 
   async saveAdoptionReceipt(record: AdoptionReceiptRecord): Promise<{ record: AdoptionReceiptRecord; created: boolean }> {

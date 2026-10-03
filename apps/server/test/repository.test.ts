@@ -61,6 +61,33 @@ function repositoryContract(name: string, make: () => Repository | undefined) {
       return r;
     };
 
+    it("records one success fee per resolution and tracks delinquent buyers", async () => {
+      const preview = freshPreview();
+      const now = new Date("2026-10-02T12:00:00Z");
+      await repo().savePreview({ preview, expiresAt: now, createdAt: now });
+      const r = await repo().getOrCreatePendingResolution({
+        resolutionId: hex32(),
+        previewId: preview.previewId as `0x${string}`,
+        buyer: BUYER,
+        release: preview.release!,
+        releaseId: preview.releaseId as `0x${string}`,
+        priceAtomic: "120000",
+        createdAt: now,
+      });
+      expect(await repo().getSuccessFee(r.resolutionId)).toBeUndefined();
+      const fee = { resolutionId: r.resolutionId, buyer: BUYER, amountAtomic: "53000", txHash: hex32(), network: "eip155:421614", settledAt: now };
+      expect(await repo().saveSuccessFee(fee)).toEqual(fee);
+      // First one wins.
+      expect((await repo().saveSuccessFee({ ...fee, amountAtomic: "1" })).amountAtomic).toBe("53000");
+      expect(await repo().getSuccessFee(r.resolutionId.toUpperCase().replace("0X", "0x"))).toEqual(fee);
+
+      const buyer = "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65" as const;
+      expect(await repo().isDelinquent(buyer)).toBe(false);
+      await repo().markDelinquent({ buyer, resolutionId: r.resolutionId, at: now });
+      await repo().markDelinquent({ buyer, resolutionId: r.resolutionId, at: now });
+      expect(await repo().isDelinquent(buyer.toLowerCase())).toBe(true);
+    });
+
     it("stores previews idempotently", async () => {
       const preview = freshPreview();
       const now = new Date("2026-10-02T12:00:00Z");
@@ -221,7 +248,7 @@ pg("postgres (throwaway cluster)", () => {
     const start = pgCmd("pg_ctl", ["-D", data, "-l", join(pgDir, "log"), "-w", "-o", `-p ${port} -k ${pgDir} -c listen_addresses=127.0.0.1 -c fsync=off`, "start"]);
     if (start.status !== 0) throw new Error(`pg_ctl start failed: ${start.stderr}`);
     pgUrl = `postgres://postgres@127.0.0.1:${port}/postgres`;
-    expect(await runMigrations(pgUrl)).toEqual(["0001_init"]);
+    expect(await runMigrations(pgUrl)).toEqual(["0001_init", "0002_success_fees"]);
     expect(await runMigrations(pgUrl)).toEqual([]);
     pgRepo = new PostgresRepository(pgUrl, { max: 4 });
   };

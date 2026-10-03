@@ -38,6 +38,8 @@ const EnvSchema = z.object({
   RESOLUTION_WARRANTY_REGISTRY_ADDRESS: AddressEnv,
   LEMMA_PROVIDER_ADDRESS: AddressEnv,
   LEMMA_STATE_DIR: z.preprocess(empty, z.string().optional()),
+  /** The model the agent runs (e.g. gpt-5.6-terra); scales the quote. Self-declared, optional. */
+  LEMMA_AGENT_MODEL: z.preprocess(empty, z.string().max(64).optional()),
 });
 
 /** Public (non-secret) bridge configuration. The buyer key is held separately. */
@@ -55,6 +57,7 @@ export type BridgeConfig = {
   registryAddress: Address | null;
   providerAddress: Address | null;
   stateDir: string;
+  agentModel: string | null;
   network: typeof ARBITRUM_SEPOLIA.caip2;
   chainId: typeof ARBITRUM_SEPOLIA.chainId;
 };
@@ -103,6 +106,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
       registryAddress: (e.RESOLUTION_WARRANTY_REGISTRY_ADDRESS as Address | undefined) ?? null,
       providerAddress: (e.LEMMA_PROVIDER_ADDRESS as Address | undefined) ?? null,
       stateDir,
+      agentModel: e.LEMMA_AGENT_MODEL ?? null,
       network: ARBITRUM_SEPOLIA.caip2,
       chainId: ARBITRUM_SEPOLIA.chainId,
     },

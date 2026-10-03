@@ -7,7 +7,7 @@ import { x402MCPClient } from "@x402/mcp";
 import type { LocalAccount } from "viem";
 
 import { BridgeError } from "./errors.js";
-import { PURCHASE_TOOL, type PaymentGuard } from "./policy.js";
+import { PURCHASE_TOOL, SUCCESS_FEE_TOOL, type PaymentGuard } from "./policy.js";
 
 export type TransportFactory = () => Transport;
 
@@ -19,11 +19,13 @@ export type PurchaseOutcome = {
 
 /** The hosted Lemma MCP endpoint, as the bridge sees it. */
 export interface RemoteLemma {
-  preview(input: { task: unknown; profile: unknown }): Promise<unknown>;
+  preview(input: { task: unknown; profile: unknown; pricing?: { model: string } }): Promise<unknown>;
   /** Paid call. Payment is created only if `guard` approves it. */
   purchase(input: { previewId: string; buyer: string }, guard: PaymentGuard, timeoutMs: number): Promise<PurchaseOutcome>;
   recover(input: { previewId: string; buyer: string }, timeoutMs: number): Promise<unknown>;
   submitReceipt(signed: unknown): Promise<unknown>;
+  /** Paid call for the success fee owed after a passed adoption. Payment is created only if `guard` approves it. */
+  paySuccessFee?(input: { resolutionId: string; buyer: string }, guard: PaymentGuard, timeoutMs: number): Promise<PurchaseOutcome>;
 }
 
 /** A remote tool answered with isError (e.g. refused before payment). Message is server text. */
@@ -149,7 +151,7 @@ export class McpRemoteLemma implements RemoteLemma {
     }
   }
 
-  preview(input: { task: unknown; profile: unknown }): Promise<unknown> {
+  preview(input: { task: unknown; profile: unknown; pricing?: { model: string } }): Promise<unknown> {
     return this.call("lemma_preview", input);
   }
 
@@ -161,18 +163,26 @@ export class McpRemoteLemma implements RemoteLemma {
     return this.call("lemma_submit_receipt", signed as Record<string, unknown>);
   }
 
-  async purchase(input: { previewId: string; buyer: string }, guard: PaymentGuard, timeoutMs: number): Promise<PurchaseOutcome> {
+  purchase(input: { previewId: string; buyer: string }, guard: PaymentGuard, timeoutMs: number): Promise<PurchaseOutcome> {
+    return this.paid(PURCHASE_TOOL, input, guard, timeoutMs);
+  }
+
+  paySuccessFee(input: { resolutionId: string; buyer: string }, guard: PaymentGuard, timeoutMs: number): Promise<PurchaseOutcome> {
+    return this.paid(SUCCESS_FEE_TOOL, input, guard, timeoutMs);
+  }
+
+  private async paid(tool: string, input: Record<string, string>, guard: PaymentGuard, timeoutMs: number): Promise<PurchaseOutcome> {
     if (this.buyer === null) throw new BridgeError("config", "BUYER_PRIVATE_KEY is not configured");
     const client = await this.open(guard);
     try {
-      const result = await client.callTool(PURCHASE_TOOL, { ...input }, { timeout: timeoutMs });
+      const result = await client.callTool(tool, { ...input }, { timeout: timeoutMs });
       if (result.isError === true && result.paymentMade) {
         const first = result.content.find((c) => c.type === "text");
         const rejection = paymentRejection(typeof first?.["text"] === "string" ? first["text"] : "");
         if (rejection !== null) throw rejection;
       }
       return {
-        payload: parseToolJson(PURCHASE_TOOL, result),
+        payload: parseToolJson(tool, result),
         paymentMade: result.paymentMade,
         settlementTx: result.paymentResponse?.transaction ?? null,
       };

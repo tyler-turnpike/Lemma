@@ -33,11 +33,11 @@ function setup(options: { allowProvisional?: boolean; paid?: boolean; now?: () =
 }
 
 describe("remote MCP over Streamable HTTP", () => {
-  it("lists the four contract tools, each with an inputSchema", async () => {
+  it("lists the five contract tools, each with an inputSchema", async () => {
     const { app } = setup();
     const client = await connectMcp(app);
     const { tools } = await client.listTools();
-    expect(tools.map((t) => t.name).sort()).toEqual(["lemma_preview", "lemma_purchase_resolution", "lemma_recover_resolution", "lemma_submit_receipt"]);
+    expect(tools.map((t) => t.name).sort()).toEqual(["lemma_pay_success_fee", "lemma_preview", "lemma_purchase_resolution", "lemma_recover_resolution", "lemma_submit_receipt"]);
     for (const t of tools) expect(t.inputSchema.type).toBe("object");
     await client.close();
   });

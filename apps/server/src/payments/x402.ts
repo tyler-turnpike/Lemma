@@ -8,14 +8,23 @@ import type { PaymentPolicy } from "./facilitator.js";
 /** EIP-712 domain of Arbitrum Sepolia USDC (FiatTokenV2_2), required for EIP-3009 signing. */
 export const USDC_EIP712 = { name: "USD Coin", version: "2" } as const;
 export const PURCHASE_TOOL = "lemma_purchase_resolution";
+export const SUCCESS_FEE_TOOL = "lemma_pay_success_fee";
+export type PaidTool = typeof PURCHASE_TOOL | typeof SUCCESS_FEE_TOOL;
+/** Bound on cached payment wrappers; quotes sit on a 500-atomic grid under a 0.25 USDC cap. */
+const MAX_WRAPPERS = 1024;
+
+const RESOURCES: Record<PaidTool, string> = {
+  [PURCHASE_TOOL]: "Lemma Compatibility Resolution with provider warranty voucher",
+  [SUCCESS_FEE_TOOL]: "Lemma success fee, owed after the acceptance tests passed",
+};
 /** How long a signed EIP-3009 authorization may wait before settlement. */
 export const PAYMENT_MAX_TIMEOUT_SECONDS = 300;
 
-type PurchaseArgs = { previewId: string; buyer: string };
-type Wrap = (handler: PaymentWrappedHandler<PurchaseArgs>) => MCPToolCallback<PurchaseArgs>;
+type PaidArgs = Record<string, unknown>;
+type Wrap = <A extends PaidArgs>(handler: PaymentWrappedHandler<A>) => MCPToolCallback<A>;
 
 /**
- * Owns the x402 resource server and one payment wrapper per atomic price. The price is
+ * Owns the x402 resource server and one payment wrapper per (tool, atomic price). The price is
  * expressed as an explicit AssetAmount (atomic USDC + asset + EIP-712 domain) so it never
  * passes through a floating-point "$" conversion.
  */
@@ -28,6 +37,7 @@ export class PaymentGateway {
     facilitatorClient: FacilitatorClient,
     private readonly policy: PaymentPolicy,
     private readonly onAfterSettlement: AfterSettlementHook,
+    private readonly onSuccessFeeSettlement: AfterSettlementHook = onAfterSettlement,
   ) {
     this.server = new x402ResourceServer(facilitatorClient).register(policy.network, new ExactEvmScheme());
   }
@@ -43,19 +53,21 @@ export class PaymentGateway {
   }
 
   /** Payment requirements for an atomic USDC price. */
-  async requirementsFor(priceAtomic: string): Promise<PaymentRequirements[]> {
-    return (await this.entry(priceAtomic)).accepts;
+  async requirementsFor(priceAtomic: string, tool: PaidTool = PURCHASE_TOOL): Promise<PaymentRequirements[]> {
+    return (await this.entry(priceAtomic, tool)).accepts;
   }
 
-  /** The x402 payment wrapper bound to an atomic USDC price (cached per price). */
-  async wrapperFor(priceAtomic: string): Promise<Wrap> {
-    return (await this.entry(priceAtomic)).wrap;
+  /** The x402 payment wrapper bound to an atomic USDC price for one paid tool (cached). */
+  async wrapperFor(priceAtomic: string, tool: PaidTool = PURCHASE_TOOL): Promise<Wrap> {
+    return (await this.entry(priceAtomic, tool)).wrap;
   }
 
-  private entry(priceAtomic: string) {
+  private entry(priceAtomic: string, tool: PaidTool) {
     if (!/^[1-9][0-9]{0,30}$/.test(priceAtomic)) return Promise.reject(new Error("invalid price"));
-    let cached = this.wrappers.get(priceAtomic);
+    const key = `${tool}|${priceAtomic}`;
+    let cached = this.wrappers.get(key);
     if (cached === undefined) {
+      if (this.wrappers.size >= MAX_WRAPPERS) this.wrappers.delete(this.wrappers.keys().next().value!);
       cached = (async () => {
         await this.ensureInitialized();
         const accepts = await this.server.buildPaymentRequirements({
@@ -67,17 +79,13 @@ export class PaymentGateway {
         });
         const paid = createPaymentWrapper(this.server, {
           accepts,
-          resource: {
-            url: `mcp://tool/${PURCHASE_TOOL}`,
-            description: "Lemma Compatibility Resolution with provider warranty voucher",
-            mimeType: "application/json",
-          },
-          hooks: { onAfterSettlement: this.onAfterSettlement },
+          resource: { url: `mcp://tool/${tool}`, description: RESOURCES[tool], mimeType: "application/json" },
+          hooks: { onAfterSettlement: tool === PURCHASE_TOOL ? this.onAfterSettlement : this.onSuccessFeeSettlement },
         });
         return { wrap: paid as Wrap, accepts };
       })();
-      cached.catch(() => this.wrappers.delete(priceAtomic));
-      this.wrappers.set(priceAtomic, cached);
+      cached.catch(() => this.wrappers.delete(key));
+      this.wrappers.set(key, cached);
     }
     return cached;
   }

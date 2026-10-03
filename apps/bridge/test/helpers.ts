@@ -171,6 +171,10 @@ export type FakeServerOptions = {
   priceAtomic?: string;
   /** Sign vouchers with this account instead of the provider (forgery test). */
   voucherSigner?: typeof provider;
+  /** Quote a success fee (atomic USDC) on previews and serve lemma_pay_success_fee. */
+  successFeeAtomic?: string;
+  /** "reject-payment": the fee payment fails x402 verification. */
+  feeMode?: "normal" | "reject-payment";
 };
 
 /**
@@ -183,6 +187,7 @@ export class FakeLemmaServer {
   readonly previews = new Map<string, Preview>();
   readonly settled = new Map<string, Awaited<ReturnType<typeof makePurchase>>>();
   readonly receipts: unknown[] = [];
+  readonly feesPaid: Array<{ resolutionId: string; amount: string }> = [];
   requests: unknown[] = [];
 
   constructor(
@@ -213,10 +218,26 @@ export class FakeLemmaServer {
     const json = (v: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(v) }], structuredContent: v as Record<string, unknown> });
     const fail = (text: string) => ({ isError: true, content: [{ type: "text" as const, text }] });
 
-    server.registerTool("lemma_preview", { inputSchema: { task: z.any(), profile: z.any() } }, async (args) => {
+    server.registerTool("lemma_preview", { inputSchema: { task: z.any(), profile: z.any(), pricing: z.any().optional() } }, async (args) => {
       this.requests.push({ tool: "lemma_preview", args });
       if (this.options.previewErrorText !== undefined) return fail(this.options.previewErrorText);
-      const preview = makePreview({ task: args.task as Preview["task"], profileDigest: digest(args.profile) }, this.options.priceAtomic ?? "120000");
+      const price = this.options.priceAtomic ?? "120000";
+      const fee = this.options.successFeeAtomic;
+      const quote =
+        fee === undefined
+          ? {}
+          : {
+              quote: {
+                model: (args.pricing as { model?: string } | undefined)?.model ?? "gpt-5.6-luna",
+                basisModel: "gpt-5.6-luna",
+                expectedSavingAtomic: "230630",
+                floorAtomic: price,
+                successFeeAtomic: fee,
+                totalAtomic: (BigInt(price) + BigInt(fee)).toString(),
+                captureBps: 2500,
+              },
+            };
+      const preview = makePreview({ task: args.task as Preview["task"], profileDigest: digest(args.profile), ...quote }, price);
       this.previews.set(preview.previewId, preview);
       return json(preview);
     });
@@ -276,6 +297,28 @@ export class FakeLemmaServer {
       this.settled.set(key, purchase);
       if (this.options.mode === "lose-response") await new Promise(() => undefined);
       return json(purchase);
+    });
+
+    server.registerTool("lemma_pay_success_fee", { inputSchema: { resolutionId: z.string(), buyer: z.string() } }, async (args, extra) => {
+      this.requests.push({ tool: "lemma_pay_success_fee", args, meta: extra._meta });
+      const fee = this.options.successFeeAtomic;
+      if (fee === undefined) return fail(JSON.stringify({ error: { code: "no_success_fee", message: "no fee" } }));
+      if (this.feesPaid.some((f) => f.resolutionId === args.resolutionId)) return fail(JSON.stringify({ error: { code: "success_fee_paid", message: "paid" } }));
+      const required = {
+        x402Version: 2,
+        resource: { url: "mcp://tool/lemma_pay_success_fee" },
+        accepts: [{ scheme: "exact", network: "eip155:421614", asset: ARBITRUM_SEPOLIA.usdc, amount: this.options.amount ?? fee, payTo: provider.address, maxTimeoutSeconds: 60, extra: { name: "USDC", version: "2" } }],
+      };
+      const payment = (extra._meta as Record<string, unknown> | undefined)?.["x402/payment"] as { payload: { authorization: Record<string, string> } } | undefined;
+      if (payment === undefined) return { isError: true, structuredContent: required, content: [{ type: "text" as const, text: JSON.stringify(required) }] };
+      if (this.options.feeMode === "reject-payment") {
+        const pr = { ...required, error: "invalid_exact_evm_insufficient_balance" };
+        return { isError: true, structuredContent: pr, content: [{ type: "text" as const, text: JSON.stringify(pr) }] };
+      }
+      const auth = payment.payload.authorization;
+      if (auth["value"] !== fee || String(auth["from"]).toLowerCase() !== args.buyer.toLowerCase()) return fail("bad fee payment");
+      this.feesPaid.push({ resolutionId: args.resolutionId, amount: fee });
+      return json({ successFee: { resolutionId: args.resolutionId, amountAtomic: fee, txHash: rand32() } });
     });
 
     server.registerTool("lemma_recover_resolution", { inputSchema: { previewId: z.string(), buyer: z.string() } }, async (args) => {

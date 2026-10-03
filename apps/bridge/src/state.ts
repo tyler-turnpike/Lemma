@@ -72,6 +72,11 @@ export const StoredResolution = z.strictObject({
   receipt: z
     .strictObject({ signed: SignedAdoptionReceipt, submitted: z.boolean(), receiptId: z.string().nullable() })
     .nullable(),
+  /** The success fee paid after a passed adoption (absent when the quote had none). */
+  successFee: z
+    .strictObject({ amountAtomic: z.string().regex(/^[1-9][0-9]{0,30}$/), txHash: z.string().regex(/^0x[0-9a-fA-F]{64}$/).nullable(), at: z.string() })
+    .nullable()
+    .optional(),
   storedAt: z.string(),
 });
 export type StoredResolution = z.infer<typeof StoredResolution>;

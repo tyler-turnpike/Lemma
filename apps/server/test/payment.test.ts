@@ -24,13 +24,13 @@ const catalog = loadCatalog();
 const task: TaskRequest = { schemaVersion: "1", kind: "x402-paywall-mcp-server", network: "arbitrum-sepolia" };
 const exact = catalog.fixtureProfile("mcp-server-exact");
 
-async function purchaseFlow() {
+async function purchaseFlow(pricing?: { model: string }) {
   const keys = makeKeys();
   const repo = new MemoryRepository();
   const facilitator = new FakeFacilitator();
   const { app } = createApp({ config: makeConfig(keys), repo, catalog, logger: silentLogger, webDistDir: null, facilitatorClient: facilitator });
   const free = await connectMcp(app);
-  const preview = Preview.parse((await free.callTool({ name: "lemma_preview", arguments: { task, profile: exact } })).structuredContent);
+  const preview = Preview.parse((await free.callTool({ name: "lemma_preview", arguments: { task, profile: exact, ...(pricing === undefined ? {} : { pricing }) } })).structuredContent);
   const requested: string[] = [];
   const paying = await connectPayingMcp(app, keys.buyer, (amount) => requested.push(amount));
   const result = await paying.callTool("lemma_purchase_resolution", { previewId: preview.previewId, buyer: keys.buyer.address });
@@ -310,6 +310,97 @@ describe("adoption receipts", () => {
     const foreignSig = await other.signMessage({ message: { raw: adoptionReceiptDigest(foreign) } });
     const rejected = await free.callTool({ name: "lemma_submit_receipt", arguments: { schemaVersion: "1", receipt: foreign, signature: foreignSig } });
     expect(toolJson(rejected)).toMatchObject({ error: { code: "buyer_mismatch" } });
+    await free.close();
+    await paying.close();
+  });
+});
+
+describe("per-request quote and success fee", () => {
+  const passedReceipt = async (keys: ReturnType<typeof makeKeys>, resolutionId: string) => {
+    const receipt: AdoptionReceipt = {
+      schemaVersion: "1",
+      resolutionId: resolutionId as Hex,
+      outcome: "passed",
+      testSummary: { passed: 4, failed: 0, skipped: 0, durationMs: 1200, exitCode: 0 },
+      filesChanged: 3,
+      evidenceDigest: `0x${"cd".repeat(32)}`,
+      buyer: keys.buyer.address,
+      signedAt: "2026-10-02T12:00:00Z",
+    };
+    return { schemaVersion: "1", receipt, signature: await keys.buyer.signMessage({ message: { raw: adoptionReceiptDigest(receipt) } }) };
+  };
+
+  it("quotes by declared model but charges only the registered price up front", async () => {
+    const luna = await purchaseFlow();
+    expect(luna.preview.quote).toMatchObject({ model: "gpt-5.6-luna", floorAtomic: "5000", successFeeAtomic: "1000", totalAtomic: "6000" });
+    const terra = await purchaseFlow({ model: "gpt-5.6-terra" });
+    expect(terra.preview.quote).toMatchObject({ model: "gpt-5.6-terra", floorAtomic: "5000", successFeeAtomic: "53000", totalAtomic: "58000" });
+    expect(terra.preview.priceAtomic).toBe("5000");
+    expect(terra.requested).toEqual(["5000"]);
+    for (const f of [luna, terra]) {
+      await f.free.close();
+      await f.paying.close();
+    }
+  });
+
+  it("collects the success fee once, from the buyer only, and records it", async () => {
+    const { keys, app, facilitator, free, paying, result } = await purchaseFlow({ model: "gpt-5.6-terra" });
+    const resolutionId = (toolJson(result) as { resolution: { resolutionId: string } }).resolution.resolutionId;
+
+    const stranger = await connectPayingMcp(app, privateKeyToAccount(generatePrivateKey()), () => undefined);
+    const wrong = await stranger.callTool("lemma_pay_success_fee", { resolutionId, buyer: privateKeyToAccount(generatePrivateKey()).address });
+    expect(toolJson(wrong)).toMatchObject({ error: { code: "buyer_mismatch" } });
+    await stranger.close();
+
+    const requested: string[] = [];
+    const payer = await connectPayingMcp(app, keys.buyer, (amount) => requested.push(amount));
+    const fee = await payer.callTool("lemma_pay_success_fee", { resolutionId, buyer: keys.buyer.address });
+    expect(fee.isError).toBeFalsy();
+    expect(requested).toEqual(["53000"]);
+    const settled = facilitator.settleCalls.at(-1)!;
+    expect(settled.requirements.amount).toBe("53000");
+    expect(settled.requirements.payTo).toBe(keys.provider.address);
+    expect(toolJson(fee)).toMatchObject({ successFee: { resolutionId, amountAtomic: "53000", txHash: settled.tx.toLowerCase() } });
+
+    const again = await payer.callTool("lemma_pay_success_fee", { resolutionId, buyer: keys.buyer.address });
+    expect(toolJson(again)).toMatchObject({ error: { code: "success_fee_paid" } });
+    expect(facilitator.settleCalls).toHaveLength(2);
+
+    const summary = (await (await app.request(`/api/v1/resolutions/${resolutionId}`)).json()) as { quote: unknown; successFee: unknown };
+    expect(summary.quote).toMatchObject({ model: "gpt-5.6-terra", successFeeAtomic: "53000" });
+    expect(summary.successFee).toMatchObject({ amountAtomic: "53000", txHash: settled.tx.toLowerCase() });
+
+    // Passing with the fee paid keeps the buyer in good standing.
+    expect((await free.callTool({ name: "lemma_submit_receipt", arguments: await passedReceipt(keys, resolutionId) })).isError).toBeFalsy();
+    const next = Preview.parse((await free.callTool({ name: "lemma_preview", arguments: { task, profile: exact } })).structuredContent);
+    const buyAgain = await payer.callTool("lemma_purchase_resolution", { previewId: next.previewId, buyer: keys.buyer.address });
+    expect(buyAgain.isError).toBeFalsy();
+    await payer.close();
+    await free.close();
+    await paying.close();
+  });
+
+  it("refuses new sales to a buyer who reports a pass without paying the fee", async () => {
+    const { keys, free, paying, result } = await purchaseFlow({ model: "gpt-5.6-terra" });
+    const resolutionId = (toolJson(result) as { resolution: { resolutionId: string } }).resolution.resolutionId;
+    const accepted = await free.callTool({ name: "lemma_submit_receipt", arguments: await passedReceipt(keys, resolutionId) });
+    expect(accepted.isError).toBeFalsy();
+    const next = Preview.parse((await free.callTool({ name: "lemma_preview", arguments: { task, profile: exact } })).structuredContent);
+    const refused = await paying.callTool("lemma_purchase_resolution", { previewId: next.previewId, buyer: keys.buyer.address });
+    expect(toolJson(refused)).toMatchObject({ error: { code: "buyer_delinquent" } });
+    await free.close();
+    await paying.close();
+  });
+
+  it("owes nothing after a failed adoption", async () => {
+    const { keys, paying, result, free } = await purchaseFlow({ model: "gpt-5.6-terra" });
+    const resolutionId = (toolJson(result) as { resolution: { resolutionId: string } }).resolution.resolutionId;
+    const { receipt } = await passedReceipt(keys, resolutionId);
+    const failed = { ...receipt, outcome: "failed" as const };
+    const signed = { schemaVersion: "1", receipt: failed, signature: await keys.buyer.signMessage({ message: { raw: adoptionReceiptDigest(failed) } }) };
+    expect((await free.callTool({ name: "lemma_submit_receipt", arguments: signed })).isError).toBeFalsy();
+    const next = Preview.parse((await free.callTool({ name: "lemma_preview", arguments: { task, profile: exact } })).structuredContent);
+    expect((await paying.callTool("lemma_purchase_resolution", { previewId: next.previewId, buyer: keys.buyer.address })).isError).toBeFalsy();
     await free.close();
     await paying.close();
   });

@@ -6,6 +6,7 @@ export * from "./semver.js";
 export * from "./paths.js";
 export * from "./schemas.js";
 export * from "./policy.js";
+export * from "./pricing.js";
 export * from "./eip712.js";
 export * from "./redact.js";
 export * from "./profile.js";

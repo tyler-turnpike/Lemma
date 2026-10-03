@@ -1,4 +1,4 @@
-// Drizzle table definitions mirroring migrations/0001_init.sql (the SQL file is the source of truth).
+// Drizzle table definitions mirroring migrations/*.sql (the SQL files are the source of truth).
 import { bigint, boolean, integer, jsonb, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
 
 const ts = (name: string) => timestamp(name, { withTimezone: true, mode: "date" });
@@ -55,6 +55,21 @@ export const adoptionReceipts = pgTable("adoption_receipts", {
   digest: text("digest").notNull(),
   signed: jsonb("signed").notNull(),
   createdAt: ts("created_at").notNull(),
+});
+
+export const successFees = pgTable("success_fees", {
+  resolutionId: text("resolution_id").primaryKey(),
+  buyer: text("buyer").notNull(),
+  amountAtomic: text("amount_atomic").notNull(),
+  txHash: text("tx_hash").notNull(),
+  network: text("network").notNull(),
+  settledAt: ts("settled_at").notNull(),
+});
+
+export const delinquentBuyers = pgTable("delinquent_buyers", {
+  buyer: text("buyer").primaryKey(),
+  resolutionId: text("resolution_id").notNull(),
+  markedAt: ts("marked_at").notNull(),
 });
 
 export const chainEventCursors = pgTable(

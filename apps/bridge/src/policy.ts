@@ -4,6 +4,7 @@ import type { PaymentRequirements } from "@x402/core/types";
 import type { SpendLedger } from "./ledger.js";
 
 export const PURCHASE_TOOL = "lemma_purchase_resolution";
+export const SUCCESS_FEE_TOOL = "lemma_pay_success_fee";
 const MAX_PAYMENT_TIMEOUT_SECONDS = 3_600;
 
 /** What the bridge expects to pay, derived only from the stored preview and local config. */
@@ -16,6 +17,12 @@ export type PaymentExpectation = {
   payTo: string;
   perResolutionCapAtomic: bigint;
   dailyCapAtomic: bigint;
+  /** Paid tool allowed to request this payment (default: the purchase tool). */
+  tool?: string;
+  /** Exact arguments the paid call must carry (default: { previewId, buyer }). */
+  args?: Readonly<Record<string, string>>;
+  /** Ledger entry this spend is recorded under (default: previewId). */
+  ledgerKey?: string;
 };
 
 /** Local policy check run before connecting (preview price against caps and budget). */
@@ -106,13 +113,16 @@ export class PaymentGuard {
       this.refusals = reasons;
       return false;
     };
-    if (ctx.toolName !== PURCHASE_TOOL) return refuse([`payment requested by unexpected tool ${ctx.toolName}`]);
+    const exp = this.expectation;
+    if (ctx.toolName !== (exp.tool ?? PURCHASE_TOOL)) return refuse([`payment requested by unexpected tool ${ctx.toolName}`]);
     if (this.approvals > 0) return refuse(["a payment was already authorized for this purchase; refusing to pay again"]);
-    if (ctx.arguments["previewId"] !== this.expectation.previewId || ctx.arguments["buyer"] !== this.expectation.buyer) {
+    const expectedArgs = exp.args ?? { previewId: exp.previewId, buyer: exp.buyer };
+    if (Object.entries(expectedArgs).some(([k, v]) => ctx.arguments[k] !== v)) {
       return refuse(["payment request does not match the purchase being made"]);
     }
+    const ledgerKey = exp.ledgerKey ?? exp.previewId;
     const now = this.clock();
-    if ((await this.ledger.get(this.expectation.previewId)) !== null) {
+    if ((await this.ledger.get(ledgerKey)) !== null) {
       return refuse(["a spend for this preview is already recorded; recovery must be used instead of paying"]);
     }
     const spent = await this.ledger.spentOn(now);
@@ -122,7 +132,7 @@ export class PaymentGuard {
       const reasons = checkRequirement(req, this.expectation, spent, now);
       if (reasons.length === 0) {
         // Persist the spend before any signature exists.
-        const { created } = await this.ledger.authorize(this.expectation.previewId, this.expectation.priceAtomic, now);
+        const { created } = await this.ledger.authorize(ledgerKey, exp.priceAtomic, now);
         if (!created) return refuse(["a spend for this preview is already recorded; refusing to pay again"]);
         this.approved = req;
         this.approvals += 1;

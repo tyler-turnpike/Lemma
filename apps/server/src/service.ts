@@ -20,7 +20,7 @@ import type { PaymentPayload, SettleResponse } from "@x402/core/types";
 import { getAddress, isAddress, recoverMessageAddress, type Address, type Hex, type LocalAccount } from "viem";
 
 import type { Logger } from "./log.js";
-import type { Repository, ResolutionRecord, SettlementRecord } from "./repository/types.js";
+import type { Repository, ResolutionRecord, SettlementRecord, SuccessFeeRecord } from "./repository/types.js";
 import { resolve } from "./resolver.js";
 
 /** How long a persisted preview may be purchased. */
@@ -44,7 +44,10 @@ export type ServiceErrorCode =
   | "resolution_not_found"
   | "resolution_not_settled"
   | "invalid_signature"
-  | "buyer_mismatch";
+  | "buyer_mismatch"
+  | "buyer_delinquent"
+  | "no_success_fee"
+  | "success_fee_paid";
 
 export class ServiceError extends Error {
   override name = "ServiceError";
@@ -94,9 +97,9 @@ export class LemmaService {
   // Preview
   // -------------------------------------------------------------------------
 
-  async preview(task: TaskRequest, profile: RepositoryProfile): Promise<PreviewT> {
+  async preview(task: TaskRequest, profile: RepositoryProfile, pricing: { model?: string | undefined } = {}): Promise<PreviewT> {
     const now = this.deps.now();
-    const resolved = resolve(task, profile, this.deps.catalog, now, { allowProvisional: this.deps.allowProvisional });
+    const resolved = resolve(task, profile, this.deps.catalog, now, { allowProvisional: this.deps.allowProvisional, model: pricing.model ?? null });
     // The resolver's id is a deterministic digest; the persisted preview gets a
     // high-entropy id because previewId + buyer authorizes recovery of a paid payload.
     const preview = Preview.parse({ ...resolved, previewId: newResolutionId() });
@@ -125,6 +128,9 @@ export class LemmaService {
     const existing = await this.deps.repo.getResolutionByPreviewBuyer(p.previewId, buyer);
     if (existing?.status === "settled" || this.unrecorded.has(lockKey(p.previewId, buyer))) {
       throw new ServiceError("already_settled", "already purchased for this preview and buyer; call lemma_recover_resolution");
+    }
+    if (await this.deps.repo.isDelinquent(buyer)) {
+      throw new ServiceError("buyer_delinquent", "this buyer reported a passed adoption without paying its success fee; new sales are refused");
     }
     return { preview: p, release, buyer, priceAtomic: p.priceAtomic };
   }
@@ -301,6 +307,75 @@ export class LemmaService {
   }
 
   // -------------------------------------------------------------------------
+  // Success fee (the rest of the quote, paid only after the acceptance tests pass)
+  // -------------------------------------------------------------------------
+
+  /** Success fee the resolution's preview quoted, or null when none is owed. */
+  async successFeeOwed(record: ResolutionRecord): Promise<string | null> {
+    const preview = await this.deps.repo.getPreview(record.previewId);
+    const fee = preview?.preview.quote?.successFeeAtomic;
+    return fee === undefined || fee === "0" ? null : fee;
+  }
+
+  /** Runs before any fee payment is requested: the caller must be the buyer of a settled resolution that owes an unpaid fee. */
+  async checkSuccessFee(resolutionId: string, buyerInput: string): Promise<{ resolution: ResolutionRecord; buyer: Address; amountAtomic: string }> {
+    const buyer = getAddress(buyerInput);
+    const resolution = await this.deps.repo.getResolution(resolutionId);
+    if (resolution === undefined) throw new ServiceError("resolution_not_found", "unknown resolution");
+    if (resolution.status !== "settled") throw new ServiceError("resolution_not_settled", "resolution is not settled");
+    if (resolution.buyer !== buyer) throw new ServiceError("buyer_mismatch", "only the resolution's buyer pays its success fee");
+    const amountAtomic = await this.successFeeOwed(resolution);
+    if (amountAtomic === null) throw new ServiceError("no_success_fee", "this resolution's quote has no success fee");
+    if ((await this.deps.repo.getSuccessFee(resolution.resolutionId)) !== undefined) throw new ServiceError("success_fee_paid", "the success fee is already paid");
+    return { resolution, buyer, amountAtomic };
+  }
+
+  /** x402 onAfterSettlement for the success fee. Never throws (see onSettled). */
+  async onSuccessFeeSettled(ctx: { arguments: Record<string, unknown>; settlement: SettleResponse; paymentPayload: PaymentPayload; paymentRequirements: { amount: string } }): Promise<void> {
+    try {
+      await this.recordSuccessFee(String(ctx.arguments.resolutionId ?? ""), String(ctx.arguments.buyer ?? ""), ctx);
+    } catch (error) {
+      this.deps.logger.error("CRITICAL: settled success fee could not be recorded", {
+        tx: ctx.settlement.transaction,
+        publicHex: [ctx.settlement.transaction],
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  private async recordSuccessFee(
+    resolutionId: string,
+    buyerInput: string,
+    ctx: { settlement: SettleResponse; paymentPayload: PaymentPayload; paymentRequirements: { amount: string } },
+  ): Promise<SuccessFeeRecord> {
+    const signing = this.requireSigning();
+    const { settlement } = ctx;
+    if (!settlement.success || !TX_HASH_RE.test(settlement.transaction)) throw new Error("settlement not successful");
+    if (settlement.network !== signing.network) throw new Error("settlement on unexpected network");
+    if (!isAddress(buyerInput, { strict: false })) throw new Error("invalid buyer");
+    const buyer = getAddress(buyerInput);
+    const payer = settlement.payer !== undefined && isAddress(settlement.payer, { strict: false }) ? getAddress(settlement.payer) : payerOf(ctx.paymentPayload);
+    if (payer !== buyer) throw new Error("settled payer does not match buyer");
+    const resolution = await this.deps.repo.getResolution(resolutionId);
+    if (resolution === undefined || resolution.buyer !== buyer) throw new Error("unknown resolution for success fee");
+    const owed = await this.successFeeOwed(resolution);
+    const amount = settlement.amount ?? ctx.paymentRequirements.amount;
+    if (owed === null || amount !== owed) throw new Error("settled amount does not equal the quoted success fee");
+    return this.deps.repo.saveSuccessFee({
+      resolutionId: resolution.resolutionId,
+      buyer,
+      amountAtomic: amount,
+      txHash: settlement.transaction.toLowerCase() as Hex,
+      network: settlement.network,
+      settledAt: this.deps.now(),
+    });
+  }
+
+  async getSuccessFee(resolutionId: string): Promise<SuccessFeeRecord | undefined> {
+    return this.deps.repo.getSuccessFee(resolutionId);
+  }
+
+  // -------------------------------------------------------------------------
   // Adoption receipts
   // -------------------------------------------------------------------------
 
@@ -325,6 +400,11 @@ export class LemmaService {
     if (resolution === undefined) throw new ServiceError("resolution_not_found", "unknown resolution");
     if (resolution.status !== "settled") throw new ServiceError("resolution_not_settled", "resolution is not settled");
     if (resolution.buyer !== buyer) throw new ServiceError("buyer_mismatch", "receipt buyer does not match the resolution buyer");
+    // A passed adoption owes the quoted success fee; reporting success without paying it ends future sales.
+    if (receipt.outcome === "passed" && (await this.successFeeOwed(resolution)) !== null && (await this.deps.repo.getSuccessFee(resolution.resolutionId)) === undefined) {
+      await this.deps.repo.markDelinquent({ buyer, resolutionId: resolution.resolutionId, at: this.deps.now() });
+      this.deps.logger.info("buyer marked delinquent: passed receipt without its success fee", { publicHex: [buyer, resolution.resolutionId] });
+    }
     const { record } = await this.deps.repo.saveAdoptionReceipt({
       receiptId: newResolutionId(),
       resolutionId: resolution.resolutionId,

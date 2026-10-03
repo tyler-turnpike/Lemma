@@ -20,7 +20,7 @@ import { readBalances, skippedActivation, type WalletBalances, type WarrantyActi
 import type { BridgeConfig } from "./config.js";
 import { BridgeError, errorMessage } from "./errors.js";
 import type { SpendLedger } from "./ledger.js";
-import { PaymentGuard, precheckSpend, type PaymentExpectation } from "./policy.js";
+import { PaymentGuard, SUCCESS_FEE_TOOL, precheckSpend, type PaymentExpectation } from "./policy.js";
 import { buildWorkspaceProfile, type ProfileFileReader } from "./profile.js";
 import type { Logger } from "./redaction.js";
 import { PaymentRejectedError, RemoteToolError, type RemoteLemma } from "./remote.js";
@@ -113,7 +113,13 @@ export type AdoptionResult = {
   submitted: boolean;
   receiptId: string | null;
   submitError: string | null;
+  successFee: SuccessFeeOutcome;
 };
+
+export type SuccessFeeOutcome =
+  | { status: "none" }
+  | { status: "paid"; amountUsdc: string; txHash: string | null; previously: boolean }
+  | { status: "failed"; amountUsdc: string; reason: string };
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -182,11 +188,13 @@ export class Bridge {
   // Preview
   // -------------------------------------------------------------------------
 
-  async preview(kind: TaskKind): Promise<PreviewResult> {
+  /** `model`: the agent's model, declared by the agent or LEMMA_AGENT_MODEL; only scales the quote. */
+  async preview(kind: TaskKind, model?: string): Promise<PreviewResult> {
     const { config, remote, store, ledger } = this.deps;
     const task = TaskRequest.parse({ schemaVersion: LEMMA_SCHEMA_VERSION, kind, network: "arbitrum-sepolia" });
     const profile = await buildWorkspaceProfile(await this.workspace(), this.deps.profileReader);
-    const raw = await remote.preview({ task, profile });
+    const declared = model ?? config.agentModel ?? undefined;
+    const raw = await remote.preview({ task, profile, ...(declared === undefined ? {} : { pricing: { model: declared } }) });
     const parsed = Preview.safeParse(raw);
     if (!parsed.success) throw new BridgeError("remote", "server returned an invalid preview", parsed.error.issues.slice(0, 5).map((i) => `${i.path.join(".")}: ${i.message}`));
     const preview = parsed.data;
@@ -200,7 +208,7 @@ export class Bridge {
     if (!preview.purchasable || price === null) reasons.push("preview is not purchasable");
     else if (config.providerAddress === null) reasons.push("LEMMA_PROVIDER_ADDRESS is not configured");
     else if (this.deps.buyer === null) reasons.push("BUYER_PRIVATE_KEY is not configured");
-    else reasons = precheckSpend(this.expectation(preview, this.deps.buyer.address, config.providerAddress), spent, now);
+    else reasons = precheckSpend(withQuoteTotal(this.expectation(preview, this.deps.buyer.address, config.providerAddress), preview), spent, now);
     return {
       preview,
       local: {
@@ -256,7 +264,8 @@ export class Bridge {
     }
 
     const now = this.clock();
-    const reasons = precheckSpend(exp, await ledger.spentOn(now), now);
+    // The caps cover the whole quote (up front + success fee), so a purchase is never made that the fee would break.
+    const reasons = precheckSpend(withQuoteTotal(exp, preview), await ledger.spentOn(now), now);
     if (reasons.length > 0) throw new BridgeError("policy", "purchase refused by local spend policy", reasons);
 
     await this.assertSameRegistry();
@@ -485,6 +494,25 @@ export class Bridge {
     let submitted = false;
     let receiptId: string | null = null;
     let submitError: string | null = null;
+    // A pass owes the quoted success fee. Pay it before reporting the pass: a passed receipt
+    // without its fee marks this buyer delinquent. If it can't be paid, hold the receipt.
+    let successFee: SuccessFeeOutcome = { status: "none" };
+    if (run.passed) successFee = await this.paySuccessFee(record);
+    if (successFee.status === "failed") {
+      submitError = `receipt held: the success fee could not be paid (${successFee.reason}). Fix it and call lemma_verify_adoption again.`;
+      record.receipt = { signed, submitted, receiptId };
+      await this.deps.store.saveResolution(record);
+      return {
+        resolutionId,
+        outcome: receipt.outcome,
+        receipt,
+        steps: run.steps.map((s) => ({ argv: s.argv, exitCode: s.exitCode, timedOut: s.timedOut, durationMs: s.durationMs, outputTail: s.output.slice(-2000) })),
+        submitted,
+        receiptId,
+        submitError,
+        successFee,
+      };
+    }
     try {
       const res = (await this.deps.remote.submitReceipt(signed)) as { accepted?: unknown; receiptId?: unknown };
       submitted = res?.accepted === true;
@@ -503,6 +531,75 @@ export class Bridge {
       submitted,
       receiptId,
       submitError,
+      successFee,
     };
   }
+
+  /** Pays the success fee the preview quoted for this resolution, once. Never throws. */
+  private async paySuccessFee(record: StoredResolution): Promise<SuccessFeeOutcome> {
+    const { ledger, remote, store, log } = this.deps;
+    if (record.successFee != null) return { status: "paid", amountUsdc: formatUsdc(BigInt(record.successFee.amountAtomic)), txHash: record.successFee.txHash, previously: true };
+    const stored = await store.loadPreview(record.resolution.previewId);
+    const fee = stored?.preview.quote?.successFeeAtomic;
+    if (fee === undefined || fee === "0") return { status: "none" };
+    const amount = BigInt(fee);
+    const amountUsdc = formatUsdc(amount);
+    try {
+      const buyer = this.requireBuyer();
+      const provider = this.requireProvider();
+      if (remote.paySuccessFee === undefined) throw new BridgeError("remote", "this remote cannot pay success fees");
+      const resolutionId = record.resolution.resolutionId;
+      // The ledger already holds a spend for this fee: it was authorized before, so recover by
+      // recording what the server says rather than paying again.
+      if ((await ledger.get(resolutionId)) !== null) {
+        log.warn("success fee already authorized; not paying again", { resolutionId });
+        record.successFee = { amountAtomic: fee, txHash: null, at: this.clock().toISOString() };
+        await store.saveResolution(record);
+        return { status: "paid", amountUsdc, txHash: null, previously: true };
+      }
+      const { config } = this.deps;
+      const exp: PaymentExpectation = {
+        previewId: record.resolution.previewId,
+        buyer: buyer.address,
+        priceAtomic: amount,
+        network: config.network,
+        usdcAddress: config.usdcAddress,
+        payTo: provider,
+        perResolutionCapAtomic: config.perResolutionCapAtomic,
+        dailyCapAtomic: config.dailyCapAtomic,
+        tool: SUCCESS_FEE_TOOL,
+        args: { resolutionId, buyer: buyer.address },
+        ledgerKey: resolutionId,
+      };
+      const now = this.clock();
+      const reasons = precheckSpend(exp, await ledger.spentOn(now), now);
+      if (reasons.length > 0) throw new BridgeError("policy", "success fee refused by local spend policy", reasons);
+      const guard = new PaymentGuard(exp, ledger, this.clock);
+      const out = await remote.paySuccessFee({ resolutionId, buyer: buyer.address }, guard, this.deps.purchaseTimeoutMs ?? 120_000);
+      if (!guard.paymentAuthorized && guard.refusals.length > 0) throw new BridgeError("policy", "success fee refused by local spend policy", guard.refusals);
+      const txHash = out.settlementTx;
+      if (txHash !== null) await ledger.settle(resolutionId, amount, txHash, resolutionId, this.clock());
+      record.successFee = { amountAtomic: fee, txHash, at: this.clock().toISOString() };
+      await store.saveResolution(record);
+      return { status: "paid", amountUsdc, txHash, previously: false };
+    } catch (error) {
+      if (error instanceof RemoteToolError && error.serverCode === "success_fee_paid") {
+        record.successFee = { amountAtomic: fee, txHash: null, at: this.clock().toISOString() };
+        await store.saveResolution(record);
+        return { status: "paid", amountUsdc, txHash: null, previously: true };
+      }
+      // Rejected by x402 verification (e.g. insufficient USDC): nothing settled, so release the
+      // local spend and let the next verify pay again.
+      if (error instanceof PaymentRejectedError && !error.duringSettlement) await ledger.voidAuthorization(record.resolution.resolutionId).catch(() => false);
+      const reason = error instanceof BridgeError && error.details.length > 0 ? `${error.message}: ${error.details.join("; ")}` : errorMessage(error);
+      log.warn("success fee not paid", { reason });
+      return { status: "failed", amountUsdc, reason };
+    }
+  }
+}
+
+/** The spend the local caps must cover for a preview: the whole quote when there is one. */
+function withQuoteTotal(exp: PaymentExpectation, preview: PreviewT): PaymentExpectation {
+  const total = preview.quote?.totalAtomic;
+  return total === undefined ? exp : { ...exp, priceAtomic: BigInt(total) };
 }

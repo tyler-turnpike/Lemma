@@ -313,6 +313,18 @@ export const WarrantyTerms = z.strictObject({
 });
 export type WarrantyTerms = z.infer<typeof WarrantyTerms>;
 
+/** Per-request quote (core/pricing.ts), as strings on the wire. */
+export const PreviewQuote = z.strictObject({
+  model: z.string().max(64),
+  basisModel: z.string().max(64),
+  expectedSavingAtomic: AtomicAmount,
+  floorAtomic: AtomicAmount,
+  successFeeAtomic: AtomicAmount,
+  totalAtomic: AtomicAmount,
+  captureBps: z.number().int().min(0).max(10_000),
+});
+export type PreviewQuote = z.infer<typeof PreviewQuote>;
+
 export const Preview = z
   .strictObject({
     schemaVersion: SchemaVersion,
@@ -330,6 +342,8 @@ export const Preview = z
     warranty: WarrantyTerms.nullable(),
     purchasable: z.boolean(),
     provisionalOverride: z.boolean(),
+    /** Absent on previews from servers without per-request quotes; then priceAtomic is the whole price. */
+    quote: PreviewQuote.nullable().optional(),
     issuedAt: IsoDateTime,
   })
   .superRefine((p, ctx) => {
@@ -339,6 +353,13 @@ export const Preview = z
     }
     if (offer && (p.releaseId === null || p.priceAtomic === null)) {
       ctx.addIssue({ code: "custom", message: "reuse/adapt previews must name a release and price" });
+    }
+    if (p.quote != null) {
+      const q = p.quote;
+      if (p.priceAtomic !== q.floorAtomic) ctx.addIssue({ code: "custom", message: "quote floor must equal the preview price" });
+      if (BigInt(q.floorAtomic) + BigInt(q.successFeeAtomic) !== BigInt(q.totalAtomic)) {
+        ctx.addIssue({ code: "custom", message: "quote total must equal floor plus success fee" });
+      }
     }
   });
 export type Preview = z.infer<typeof Preview>;

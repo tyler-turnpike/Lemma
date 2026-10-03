@@ -5,7 +5,9 @@ import {
   TaskRequest,
   compareVersions,
   digest,
+  BENCHMARK_MODELS,
   isPriceJustified,
+  quoteFor,
   releaseIdFor,
   satisfiesRange,
   type CapabilityRelease as CapabilityReleaseT,
@@ -24,6 +26,8 @@ export type ResolveOptions = {
    * evidence to be purchasable. Never overrides a benchmarked price that fails the pricing rule.
    */
   allowProvisional?: boolean;
+  /** Buyer-declared model (self-reported), used only to scale the quote. */
+  model?: string | null;
 };
 
 export class ResolverInputError extends Error {
@@ -77,6 +81,7 @@ export function resolve(task: TaskRequestT, profile: RepositoryProfileT, catalog
       warranty: null,
       purchasable: false,
       provisionalOverride: false,
+      quote: null,
     });
 
   if (candidates.length === 0) {
@@ -112,6 +117,32 @@ export function resolve(task: TaskRequestT, profile: RepositoryProfileT, catalog
   else reasons.push("price exceeds 30% of the measured expected saving");
   if (provisionalOverride) reasons.push("testnet demo override: provisional evidence allowed for purchase");
 
+  // Per-request quote: the registered price is the floor (paid up front, warranty-covered); a success
+  // fee up to 25% of the saving scaled to the buyer's model is paid only after acceptance passes.
+  const q =
+    justified && saving !== null
+      ? quoteFor({ floorAtomic: price, expectedSavingAtomic: saving, basisModel: BENCHMARK_MODELS[r.evidence.benchmarkVersion ?? ""] ?? null, model: options.model ?? null })
+      : null;
+  const quote =
+    q === null
+      ? null
+      : {
+          model: q.model,
+          basisModel: q.basisModel,
+          expectedSavingAtomic: q.expectedSavingAtomic.toString(),
+          floorAtomic: q.floorAtomic.toString(),
+          successFeeAtomic: q.successFeeAtomic.toString(),
+          totalAtomic: q.totalAtomic.toString(),
+          captureBps: Number(q.captureBps),
+        };
+  if (q !== null) {
+    reasons.push(
+      q.successFeeAtomic > 0n
+        ? `quoted for ${q.model}: ${q.floorAtomic} atomic USDC up front, ${q.successFeeAtomic} more only if the acceptance tests pass`
+        : `quoted for ${q.model}: ${q.floorAtomic} atomic USDC, no success fee`,
+    );
+  }
+
   return finalize({
     ...base,
     decision,
@@ -125,6 +156,7 @@ export function resolve(task: TaskRequestT, profile: RepositoryProfileT, catalog
     warranty: { bondAtomic: r.bondAtomic, claimWindowSeconds: r.claimWindowSeconds, coverage: WARRANTY_COVERAGE },
     purchasable,
     provisionalOverride,
+    quote,
   });
 }
 

@@ -88,7 +88,12 @@ export function createApp(deps: AppDeps): AppHandle {
   const service = new LemmaService({ repo, catalog, now, logger, allowProvisional: config.allowProvisional, signing });
   const gateway =
     disabledReason === null && facilitatorClient !== undefined && policy !== undefined
-      ? new PaymentGateway(facilitatorClient, policy, (ctx) => service.onSettled(ctx))
+      ? new PaymentGateway(
+          facilitatorClient,
+          policy,
+          (ctx) => service.onSettled(ctx),
+          (ctx) => service.onSuccessFeeSettled(ctx),
+        )
       : undefined;
   if (disabledReason !== null) logger.warn(disabledReason);
 
@@ -179,11 +184,14 @@ export function createApp(deps: AppDeps): AppHandle {
     if (!id.success) return c.json({ error: { code: "invalid_input", message: "resolutionId must be 32-byte hex" } }, 400);
     const r = await repo.getResolution(id.data);
     if (r === undefined) return c.json({ error: { code: "not_found", message: "resolution not found" } }, 404);
-    const [settlement, voucher, receipts] = await Promise.all([
+    const [settlement, voucher, receipts, preview, fee] = await Promise.all([
       repo.getSettlementForResolution(r.resolutionId),
       repo.getVoucher(r.resolutionId),
       repo.listAdoptionReceipts(r.resolutionId),
+      repo.getPreview(r.previewId),
+      repo.getSuccessFee(r.resolutionId),
     ]);
+    const quote = preview?.preview.quote ?? null;
     const latest = receipts.at(-1);
     // Summary only: never the patch bundle or acceptance internals.
     return c.json({
@@ -200,6 +208,8 @@ export function createApp(deps: AppDeps): AppHandle {
       payment: settlement === undefined ? null : { txHash: settlement.txHash, network: settlement.network, payer: settlement.payer, amountAtomic: settlement.amountAtomic, settledAt: settlement.settledAt.toISOString() },
       voucher: voucher?.signed ?? null,
       receipts: { count: receipts.length, latestOutcome: latest?.outcome ?? null, latestAt: latest?.createdAt.toISOString() ?? null },
+      quote: quote === null ? null : { model: quote.model, floorAtomic: quote.floorAtomic, successFeeAtomic: quote.successFeeAtomic, totalAtomic: quote.totalAtomic },
+      successFee: fee === undefined ? null : { txHash: fee.txHash, amountAtomic: fee.amountAtomic, settledAt: fee.settledAt.toISOString() },
     });
   });
 

@@ -55,6 +55,16 @@ export type AdoptionReceiptRecord = {
   createdAt: Date;
 };
 
+export type SuccessFeeRecord = {
+  resolutionId: `0x${string}`;
+  /** Checksummed buyer address. */
+  buyer: `0x${string}`;
+  amountAtomic: string;
+  txHash: `0x${string}`;
+  network: string;
+  settledAt: Date;
+};
+
 export type ChainCursor = { chainId: number; stream: string; blockNumber: bigint; logIndex: number; updatedAt: Date };
 
 export class RepositoryConflictError extends Error {
@@ -103,6 +113,13 @@ export interface Repository {
   /** Insert-if-absent by digest; returns the stored record and whether it was new. */
   saveAdoptionReceipt(record: AdoptionReceiptRecord): Promise<{ record: AdoptionReceiptRecord; created: boolean }>;
   listAdoptionReceipts(resolutionId: string): Promise<AdoptionReceiptRecord[]>;
+
+  /** Insert-if-absent by resolutionId (tx hash unique); returns the stored record (the first one wins). */
+  saveSuccessFee(record: SuccessFeeRecord): Promise<SuccessFeeRecord>;
+  getSuccessFee(resolutionId: string): Promise<SuccessFeeRecord | undefined>;
+  /** Idempotent; the first resolution recorded for a buyer is kept. */
+  markDelinquent(input: { buyer: `0x${string}`; resolutionId: `0x${string}`; at: Date }): Promise<void>;
+  isDelinquent(buyer: string): Promise<boolean>;
 
   getChainCursor(chainId: number, stream: string): Promise<ChainCursor | undefined>;
   setChainCursor(cursor: ChainCursor): Promise<void>;

@@ -6,6 +6,7 @@ import {
   type Repository,
   type ResolutionRecord,
   type SettlementRecord,
+  type SuccessFeeRecord,
   type VoucherRecord,
 } from "./types.js";
 
@@ -21,6 +22,33 @@ export class MemoryRepository implements Repository {
   private vouchers = new Map<string, VoucherRecord>();
   private receipts = new Map<string, AdoptionReceiptRecord>();
   private cursors = new Map<string, ChainCursor>();
+  private successFees = new Map<string, SuccessFeeRecord>();
+  private delinquent = new Map<string, `0x${string}`>();
+
+  async saveSuccessFee(record: SuccessFeeRecord): Promise<SuccessFeeRecord> {
+    const id = record.resolutionId.toLowerCase();
+    const existing = this.successFees.get(id);
+    if (existing !== undefined) return clone(existing);
+    for (const fee of this.successFees.values()) {
+      if (fee.txHash.toLowerCase() === record.txHash.toLowerCase()) throw new RepositoryConflictError("success fee tx already recorded");
+    }
+    this.successFees.set(id, clone(record));
+    return clone(record);
+  }
+
+  async getSuccessFee(resolutionId: string): Promise<SuccessFeeRecord | undefined> {
+    const r = this.successFees.get(resolutionId.toLowerCase());
+    return r === undefined ? undefined : clone(r);
+  }
+
+  async markDelinquent(input: { buyer: `0x${string}`; resolutionId: `0x${string}`; at: Date }): Promise<void> {
+    const k = input.buyer.toLowerCase();
+    if (!this.delinquent.has(k)) this.delinquent.set(k, input.resolutionId);
+  }
+
+  async isDelinquent(buyer: string): Promise<boolean> {
+    return this.delinquent.has(buyer.toLowerCase());
+  }
 
   async savePreview(record: PreviewRecord): Promise<void> {
     const id = record.preview.previewId.toLowerCase();
