@@ -3,14 +3,20 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg: #0a0a0a;
-  --color-card: #111111;
-  --color-line: #262626;
-  --color-fg: #fafafa;
-  --color-muted: #8a8a8a;
-  --color-faint: #5c5c5c;
-  /* Signal colour is reserved for the product mock (success ticks, REUSE pill). */
-  --color-signal: #4ade80;
+  --color-bg: #0b1113;
+  --color-card: #121a1c;
+  --color-line: #243234;
+  --color-fg: #edf3f1;
+  --color-muted: #93a3a0;
+  /* At least 4.5:1 on bg. */
+  --color-faint: #6f807c;
+  /* Brand mint: primary buttons, focus ring, link hover, success badges and key numbers only. */
+  --color-mint: #5fe7bb;
+  --color-mint-strong: #8ef0cf;
+  --color-mint-soft: #11302a;
+  --color-ink: #0e1518;
+  /* Alias kept for success states (badges, mock ticks). One green across the site. */
+  --color-signal: #5fe7bb;
 
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono Variable", ui-monospace, "SFMono-Regular", monospace;
@@ -49,7 +55,7 @@
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-fg);
+    outline: 2px solid var(--color-mint);
     outline-offset: 3px;
     border-radius: 4px;
   }
@@ -74,6 +80,13 @@
   vertical-align: bottom;
   width: 0;
   animation: mock-type 1.5s steps(var(--chars)) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mock-type {
+    width: auto;
+    animation: none;
+  }
 }
 
 @keyframes mock-type {

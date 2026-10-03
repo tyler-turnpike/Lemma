@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { ApiError, getJson, probe, resolveApiBase } from "../src/api/client.js";
 import { parseBenchmarks, parseReceipts, parseReleases, parseResolution, parseStatus } from "../src/api/parse.js";
 import { App } from "../src/App.js";
-import { dashboard, links } from "../src/content.js";
+import { dashboard, featured, links } from "../src/content.js";
 import { arbiscanAddress, arbiscanTx, githubCommit, safeExternalHref } from "../src/lib/links.js";
 import { formatDuration, formatUsdcAtomic } from "../src/lib/format.js";
 import { BenchmarkView } from "../src/pages/BenchmarkPage.js";
@@ -179,7 +179,11 @@ describe("catalog view", () => {
     expect(html).toContain("Apr 1, 2027");
     expect(html).toContain("Apache-2.0");
     expect(html).toContain(dashboard.catalog.evidence.provisional);
-    expect(html).not.toContain("text-signal");
+    expect(html).toContain(dashboard.catalog.evidence.published);
+    expect(html).not.toContain("bg-mint-soft");
+    // Only the release that was actually bought links to the live purchase.
+    expect(html.split(dashboard.catalog.evidence.livePurchase).length - 1).toBe(1);
+    expect(html).toContain(`href="/resolutions/${featured.resolutionId}"`);
     expectOnlyAllowedLinks(html);
   });
 
@@ -188,7 +192,7 @@ describe("catalog view", () => {
     const benchmarked = { ...r, evidence: { status: "benchmarked" as const, benchmarkVersion: "v1", expectedSavingAtomic: "500000", expectedTokenSaving: 1000 } };
     const html = renderToStaticMarkup(<CatalogView state={ready({ releases: [benchmarked] })} />);
     expect(html).toContain(dashboard.catalog.evidence.benchmarked);
-    expect(html).toContain("text-signal");
+    expect(html).toContain("bg-mint-soft");
   });
 
   it("escapes hostile release text", () => {
@@ -257,7 +261,7 @@ describe("benchmark view", () => {
     expect(html).toContain('data-state="empty"');
     expect(html).toContain("It is a target, not a measured result.");
     expect(html).not.toContain("Meets 25% target");
-    expect(html).not.toContain("text-signal");
+    expect(html).not.toContain("bg-mint-soft");
   });
 
   it("renders per-arm medians, reductions, pass rates and no-match spend with testnet n labels", () => {

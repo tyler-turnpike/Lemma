@@ -14,7 +14,7 @@ export function Footer() {
               <ul className="mt-4 space-y-3">
                 {column.links.map((link) => (
                   <li key={link.label}>
-                    <Link href={link.href} className="text-sm text-muted transition-colors hover:text-fg">
+                    <Link href={link.href} className="text-sm text-muted transition-colors hover:text-mint">
                       {link.label}
                     </Link>
                   </li>

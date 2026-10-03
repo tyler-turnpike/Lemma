@@ -7,18 +7,18 @@ import { SectionHeader } from "./SectionHeader.js";
 
 type CardKey = (typeof guarantees.cards)[number]["key"];
 
-// Grayscale textures standing in for Polar's blurred wave photography.
+// Teal-tinted textures standing in for Polar's blurred wave photography.
 const textures: Record<CardKey, string> = {
   privacy:
-    "radial-gradient(70% 60% at 20% 15%, #4a4a4a 0%, transparent 70%), radial-gradient(60% 50% at 90% 90%, #1c1c1c 0%, transparent 70%), repeating-linear-gradient(125deg, rgba(255,255,255,0.05) 0 1px, transparent 1px 6px), #2a2a2a",
+    "radial-gradient(70% 60% at 20% 15%, #3c5653 0%, transparent 70%), radial-gradient(60% 50% at 90% 90%, #152120 0%, transparent 70%), repeating-linear-gradient(125deg, rgba(255,255,255,0.05) 0 1px, transparent 1px 6px), #21302f",
   spend:
-    "radial-gradient(60% 70% at 80% 10%, #505050 0%, transparent 70%), radial-gradient(70% 60% at 10% 95%, #1a1a1a 0%, transparent 70%), repeating-linear-gradient(150deg, rgba(255,255,255,0.05) 0 1px, transparent 1px 6px), #2b2b2b",
+    "radial-gradient(60% 70% at 80% 10%, #405a57 0%, transparent 70%), radial-gradient(70% 60% at 10% 95%, #142020 0%, transparent 70%), repeating-linear-gradient(150deg, rgba(255,255,255,0.05) 0 1px, transparent 1px 6px), #22312f",
   warranty:
-    "radial-gradient(60% 60% at 50% 0%, #4c4c4c 0%, transparent 70%), radial-gradient(60% 60% at 15% 85%, #1d1d1d 0%, transparent 70%), repeating-linear-gradient(100deg, rgba(255,255,255,0.05) 0 1px, transparent 1px 6px), #292929",
+    "radial-gradient(60% 60% at 50% 0%, #3e5855 0%, transparent 70%), radial-gradient(60% 60% at 15% 85%, #162221 0%, transparent 70%), repeating-linear-gradient(100deg, rgba(255,255,255,0.05) 0 1px, transparent 1px 6px), #20302e",
 };
 
 function Chip({ children }: { readonly children: ReactNode }) {
-  return <div className="w-full max-w-[17rem] rounded-sm bg-[#141414]/95 p-5 text-sm shadow-2xl">{children}</div>;
+  return <div className="w-full max-w-[17rem] rounded-sm bg-[#131c1e]/95 p-5 text-sm shadow-2xl">{children}</div>;
 }
 
 const chips: Record<CardKey, ReactNode> = {
@@ -38,7 +38,7 @@ const chips: Record<CardKey, ReactNode> = {
         <span className="font-mono text-fg">0.12 USDC</span>
         <span className="text-muted">cap 0.25</span>
       </div>
-      <div className="mt-4 h-1 rounded-full bg-[#2a2a2a]">
+      <div className="mt-4 h-1 rounded-full bg-[#243234]">
         <div className="h-full w-[48%] rounded-full bg-fg" />
       </div>
       <p className="mt-3 text-xs text-muted">Today 0.12 / 1.00 USDC</p>
@@ -78,7 +78,7 @@ export function Guarantees() {
               </div>
               <h3 className="mt-8 text-xl text-fg">{card.title}</h3>
               <p className="mt-2 leading-relaxed text-muted">{card.body}</p>
-              <Link href={card.href} className="mt-3 inline-flex items-center gap-1.5 text-fg hover:opacity-80">
+              <Link href={card.href} className="mt-3 inline-flex items-center gap-1.5 text-fg transition-colors hover:text-mint">
                 {guarantees.learnMore} <span aria-hidden="true">→</span>
               </Link>
             </li>

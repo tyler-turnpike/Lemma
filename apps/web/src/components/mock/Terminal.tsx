@@ -33,7 +33,7 @@ function Line({ line, active, typed }: { readonly line: MockLine; readonly activ
     case "ok":
       return (
         <p className="pl-5">
-          <span className="text-signal">✓</span> <span className="text-fg">{line.text}</span>
+          <span className="text-mint">✓</span> <span className="text-fg">{line.text}</span>
           {line.detail ? <span className="text-muted"> · {line.detail}</span> : null}
         </p>
       );
@@ -43,7 +43,7 @@ function Line({ line, active, typed }: { readonly line: MockLine; readonly activ
           {line.files.map((file) => (
             <li key={file.path} className="flex gap-3">
               <span className="min-w-0 flex-1 truncate md:max-w-60">{file.path}</span>
-              <span className="text-signal">+{file.add}</span>
+              <span className="text-mint">+{file.add}</span>
               <span className="text-faint">−{file.del}</span>
             </li>
           ))}
@@ -64,12 +64,12 @@ export function Terminal({ visible }: { readonly visible: number }) {
 
   return (
     <div className="relative">
-      <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#121212]/95 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.9)]">
+      <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#111a1c]/95 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.9)]">
         <div className="relative flex h-10 items-center border-b border-white/5 px-4">
           <div className="flex gap-2">
-            <span className="size-3 rounded-full bg-[#3a3a3a]" />
-            <span className="size-3 rounded-full bg-[#3a3a3a]" />
-            <span className="size-3 rounded-full bg-[#3a3a3a]" />
+            <span className="size-3 rounded-full bg-[#2c3b3b]" />
+            <span className="size-3 rounded-full bg-[#2c3b3b]" />
+            <span className="size-3 rounded-full bg-[#2c3b3b]" />
           </div>
           <span className="absolute inset-x-0 text-center font-mono text-xs text-muted">{mockTitle}</span>
         </div>

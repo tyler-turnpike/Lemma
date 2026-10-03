@@ -1,4 +1,8 @@
-// Hardcoded session for the "Lemma in use" mock. Values are illustrative testnet data.
+// Hardcoded session for the "Lemma in use" mock. Illustrative, labelled as such in the UI; the
+// settlement hash is the real featured purchase (content.ts `featured`).
+
+import { featured } from "../../content.js";
+import { shortHex } from "../../lib/format.js";
 
 export type MockLine =
   | { readonly kind: "prompt"; readonly text: string }
@@ -28,7 +32,7 @@ export const mockSteps: readonly MockStep[] = [
   { delay: 800, line: { kind: "card" } },
   { delay: 1200, line: { kind: "tool", name: "lemma_buy_resolution", args: "release=x402-mcp-server@1.0.0" } },
   { delay: 600, line: { kind: "ok", text: "spend policy", detail: "0.12 ≤ 0.25 per resolution · today 0.12 / 1.00 USDC" } },
-  { delay: 700, line: { kind: "ok", text: "x402 settled", detail: "tx 0x9f3c…a71e · arbitrum-sepolia" } },
+  { delay: 700, line: { kind: "ok", text: "x402 settled", detail: `tx ${shortHex(featured.settlementTx)} · arbitrum-sepolia` } },
   { delay: 800, line: { kind: "tool", name: "lemma_apply_resolution", args: "--preview" } },
   {
     delay: 600,
@@ -45,7 +49,7 @@ export const mockSteps: readonly MockStep[] = [
   { delay: 700, line: { kind: "ok", text: "applied atomically", detail: "4 files · +86 −3" } },
   { delay: 800, line: { kind: "tool", name: "lemma_verify_adoption", args: "recipe=pinned" } },
   { delay: 900, line: { kind: "ok", text: "acceptance tests", detail: "12 / 12 passed" } },
-  { delay: 600, line: { kind: "ok", text: "Adoption Receipt signed", detail: "warranty active · 72h claim window" } },
+  { delay: 600, line: { kind: "ok", text: "Adoption Receipt signed", detail: "warranty voucher signed · 72h claim window" } },
 ];
 
 export const decisionCard = {

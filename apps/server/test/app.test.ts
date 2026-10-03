@@ -102,7 +102,10 @@ describe("http app", () => {
     expect((await app.request("/api/v1/adoption-receipts")).status).toBe(400);
     const empty = await app.request(`/api/v1/adoption-receipts?resolutionId=0x${"ab".repeat(32)}`);
     expect(await empty.json()).toEqual({ resolutionId: `0x${"ab".repeat(32)}`, receipts: [] });
-    expect(await (await app.request("/api/v1/benchmarks")).json()).toEqual({ status: "not-run" });
+    // Point at a path that cannot exist so the assertion does not depend on whether a real
+    // aggregate has been published into packages/benchmark/published.
+    const noAggregate = createApp({ ...base(), config: makeConfig(null), benchmarkAggregatePath: join(tmpdir(), "lemma-absent-aggregate.json") }).app;
+    expect(await (await noAggregate.request("/api/v1/benchmarks")).json()).toEqual({ status: "not-run" });
     const missing = await app.request("/api/v1/nope");
     expect(missing.status).toBe(404);
   });

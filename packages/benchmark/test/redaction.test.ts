@@ -19,7 +19,10 @@ describe("secret handling in run records", () => {
   it("parses dotenv files without touching process.env", () => {
     expect(env.OPENAI_API_KEY).toBe(FAKE_OPENAI);
     expect(env.ARBITRUM_SEPOLIA_RPC_URL).toBe(FAKE_RPC);
-    expect(process.env.BENCHMARK_BUYER_PRIVATE_KEY).toBeUndefined();
+    // The parsed value must never reach process.env. Asserting "undefined" would fail
+    // wherever the real variable is exported, so compare against the parsed value.
+    expect(process.env.BENCHMARK_BUYER_PRIVATE_KEY).not.toBe(FAKE_BUYER);
+    expect(process.env.OPENAI_API_KEY).not.toBe(FAKE_OPENAI);
   });
 
   it("collects secret-named values only", () => {

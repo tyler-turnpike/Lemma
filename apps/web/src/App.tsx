@@ -4,8 +4,11 @@ import { ClosingCta } from "./components/ClosingCta.js";
 import { Footer } from "./components/Footer.js";
 import { Guarantees } from "./components/Guarantees.js";
 import { Hero } from "./components/Hero.js";
+import { HowItWorks } from "./components/HowItWorks.js";
+import { LiveProof } from "./components/LiveProof.js";
 import { ProductMock } from "./components/mock/ProductMock.js";
 import { Nav } from "./components/Nav.js";
+import { WhyArbitrum } from "./components/WhyArbitrum.js";
 import { BenchmarkPage } from "./pages/BenchmarkPage.js";
 import { CatalogPage } from "./pages/CatalogPage.js";
 import { NotFoundPage } from "./pages/NotFoundPage.js";
@@ -17,15 +20,18 @@ function Landing() {
   return (
     <>
       <Hero />
+      <LiveProof />
+      <HowItWorks />
       <ProductMock />
       <Guarantees />
+      <WhyArbitrum />
       <ClosingCta />
     </>
   );
 }
 
 const titles: Record<Route["name"], string> = {
-  landing: "Lemma",
+  landing: "Lemma · Verified integrations for coding agents on Arbitrum",
   catalog: "Catalog · Lemma",
   resolution: "Resolution · Lemma",
   "resolution-lookup": "Resolutions · Lemma",
@@ -34,7 +40,7 @@ const titles: Record<Route["name"], string> = {
   "not-found": "Not found · Lemma",
 };
 
-const navActive: Partial<Record<Route["name"], string>> = { catalog: "/catalog", status: "/status" };
+const navActive: Partial<Record<Route["name"], string>> = { catalog: "/catalog", benchmark: "/benchmark", status: "/status" };
 
 function Page({ route }: { readonly route: Route }) {
   switch (route.name) {

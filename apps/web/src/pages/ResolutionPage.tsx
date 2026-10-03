@@ -8,10 +8,10 @@ import { Badge } from "../components/dashboard/Badge.js";
 import { DataList, ExternalLink, Hash } from "../components/dashboard/Fields.js";
 import { DashboardShell, PageHeader, Panel } from "../components/dashboard/Shell.js";
 import { ErrorState, LoadingState, MessageState } from "../components/dashboard/States.js";
-import { dashboard } from "../content.js";
+import { dashboard, featured, featuredPath } from "../content.js";
 import { formatDateTime, formatUsdcAtomic, unixSecondsToIso } from "../lib/format.js";
 import { arbiscanAddress, arbiscanTx } from "../lib/links.js";
-import { navigate } from "../router.js";
+import { Link, navigate } from "../router.js";
 
 const copy = dashboard.resolution;
 
@@ -255,7 +255,7 @@ export function ResolutionLookupPage() {
   return (
     <DashboardShell active="/resolutions">
       <PageHeader label={copy.label} headline={copy.lookup.headline} lede={copy.lookup.lede} />
-      <form onSubmit={submit} className="mt-16 md:mt-24 md:ml-[calc(50%+1.5rem)]" noValidate>
+      <form onSubmit={submit} className="mt-16 md:mt-24" noValidate>
         <label htmlFor="resolution-id" className="text-sm text-muted">
           Resolution id
         </label>
@@ -273,9 +273,9 @@ export function ResolutionLookupPage() {
             maxLength={80}
             aria-invalid={invalid}
             aria-describedby={invalid ? "resolution-id-error" : undefined}
-            className="h-11 min-w-0 flex-1 rounded-full border border-line bg-card px-5 font-mono text-sm text-fg placeholder:text-faint focus:border-muted focus:outline-none"
+            className="h-11 min-w-0 flex-1 rounded-full border border-line bg-card px-5 font-mono text-sm text-fg placeholder:text-faint focus:border-mint focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mint"
           />
-          <button type="submit" className="inline-flex h-11 items-center justify-center rounded-full bg-fg px-6 text-[0.9375rem] font-medium text-bg transition-opacity hover:opacity-85">
+          <button type="submit" className="inline-flex h-11 items-center justify-center rounded-full bg-mint px-6 text-[0.9375rem] font-medium text-ink transition-colors hover:bg-mint-strong">
             {copy.lookup.submit}
           </button>
         </div>
@@ -285,6 +285,26 @@ export function ResolutionLookupPage() {
           </p>
         ) : null}
       </form>
+      <section aria-labelledby="demo-title" className="mt-10 rounded-md border border-line bg-card px-5 py-6 md:px-6">
+        <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between md:gap-10">
+          <div className="min-w-0">
+            <h2 id="demo-title" className="flex flex-wrap items-center gap-3 text-lg text-fg">
+              {copy.lookup.demo.label}
+              <Badge tone="success">Settled</Badge>
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">{copy.lookup.demo.body}</p>
+            <p className="mt-3 font-mono text-xs break-all text-faint">
+              {featured.release} · {featured.resolutionId}
+            </p>
+          </div>
+          <Link
+            href={featuredPath}
+            className="inline-flex h-10 shrink-0 items-center gap-2 self-start rounded-full border border-line pr-4 pl-5 text-[0.9375rem] font-medium text-fg transition-colors hover:border-mint hover:text-mint md:self-center"
+          >
+            {copy.lookup.demo.cta} <span aria-hidden="true">→</span>
+          </Link>
+        </div>
+      </section>
     </DashboardShell>
   );
 }

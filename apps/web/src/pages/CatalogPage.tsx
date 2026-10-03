@@ -7,9 +7,10 @@ import { Badge } from "../components/dashboard/Badge.js";
 import { DataList, ExternalLink, Hash, Stat } from "../components/dashboard/Fields.js";
 import { DashboardShell, PageHeader } from "../components/dashboard/Shell.js";
 import { ErrorState, LoadingState, MessageState } from "../components/dashboard/States.js";
-import { dashboard } from "../content.js";
+import { dashboard, featured, featuredPath } from "../content.js";
 import { formatDate, formatDuration, formatUsdcAtomic } from "../lib/format.js";
 import { githubCommit, githubRepoLabel } from "../lib/links.js";
+import { Link } from "../router.js";
 
 const copy = dashboard.catalog;
 
@@ -37,9 +38,27 @@ function ReleaseCard({ release }: { readonly release: ReleaseSummary }) {
             {release.title}
           </h2>
         </div>
-        <EvidenceBadge status={evidence.status} />
+        <div className="flex flex-col items-start gap-2 md:items-end">
+          <EvidenceBadge status={evidence.status} />
+          {evidence.status === "provisional" ? (
+            <p className="max-w-sm text-xs leading-relaxed text-muted md:text-right">
+              {copy.evidence.published}{" "}
+              <Link href="/benchmark" className="text-fg underline decoration-line underline-offset-4 transition-colors hover:text-mint hover:decoration-mint">
+                {copy.evidence.publishedLink}
+              </Link>
+            </p>
+          ) : null}
+        </div>
       </div>
       <p className="max-w-3xl px-5 pb-6 leading-relaxed text-muted md:px-6">{release.summary}</p>
+      {/* Only the release that was actually bought links to the live purchase. */}
+      {release.id === featured.release ? (
+        <p className="-mt-2 px-5 pb-6 text-sm md:px-6">
+          <Link href={featuredPath} className="text-fg transition-colors hover:text-mint">
+            {copy.evidence.livePurchase} <span aria-hidden="true">→</span>
+          </Link>
+        </p>
+      ) : null}
 
       <div className="grid grid-cols-2 gap-px border-y border-line bg-line md:grid-cols-4">
         <Stat label={copy.fields.price} value={formatUsdcAtomic(release.priceAtomic)} note="per resolution" />

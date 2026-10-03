@@ -49,6 +49,11 @@ function reductionText(value: number | null): string {
   return value >= 0 ? `${formatPercent(value)} lower` : `${formatPercent(-value)} higher`;
 }
 
+function passText(arm: BenchmarkArm): string {
+  if (arm.passed !== null && arm.runs !== null) return `${arm.passed}/${arm.runs}`;
+  return arm.passRate === null ? "—" : formatPercent(arm.passRate);
+}
+
 function armCell(arm: BenchmarkArm, metric: keyof BenchmarkArm): string {
   const v = arm[metric];
   if (v === null) return "—";
@@ -70,9 +75,9 @@ function armCell(arm: BenchmarkArm, metric: keyof BenchmarkArm): string {
 const metrics: readonly (readonly [keyof BenchmarkArm, string])[] = [
   ["runs", "Runs"],
   ["passed", "Passed acceptance"],
-  ["medianCostUsd", "Median all-in cost"],
   ["medianTotalTokens", "Median total tokens"],
   ["passRate", "Acceptance pass rate"],
+  ["medianCostUsd", "Median all-in cost"],
   ["medianDurationMs", "Median wall clock"],
 ];
 
@@ -101,9 +106,14 @@ function Published({ aggregate }: { readonly aggregate: BenchmarkAggregate }) {
         </span>
       </p>
 
-      <div className="grid gap-px overflow-hidden rounded-md border border-line bg-line md:grid-cols-3">
-        <Stat label="Median all-in cost, Lemma vs control" value={reductionText(aggregate.costReduction)} note={targetBadge(aggregate.costReduction, aggregate.criteria.costTargetMet)} />
+      <div className="grid gap-px overflow-hidden rounded-md border border-line bg-line sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Median total tokens, Lemma vs control" value={reductionText(aggregate.tokenReduction)} note={targetBadge(aggregate.tokenReduction, aggregate.criteria.tokenTargetMet)} />
+        <Stat
+          label="Acceptance passes, Lemma vs control"
+          value={`${passText(aggregate.treatment)} vs ${passText(aggregate.control)}`}
+          note={aggregate.criteria.noCorrectnessRegression === null ? undefined : aggregate.criteria.noCorrectnessRegression ? <Badge tone="success">No regression</Badge> : <Badge tone="strong">Regression</Badge>}
+        />
+        <Stat label="Median all-in cost, Lemma vs control" value={reductionText(aggregate.costReduction)} note={targetBadge(aggregate.costReduction, aggregate.criteria.costTargetMet)} />
         <Stat
           label="No-match treatment spend"
           value={aggregate.noMatchSpendAtomic === null ? "—" : formatUsdcAtomic(aggregate.noMatchSpendAtomic)}

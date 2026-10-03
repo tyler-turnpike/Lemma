@@ -8,7 +8,7 @@ export function ExternalLink({ href, children, className = "" }: { readonly href
   const safe = safeExternalHref(href);
   if (safe === null) return <span className={className}>{children}</span>;
   return (
-    <a href={safe} target="_blank" rel="noopener noreferrer" className={`inline-flex items-center gap-1 text-fg underline decoration-line underline-offset-4 transition-colors hover:decoration-fg ${className}`}>
+    <a href={safe} target="_blank" rel="noopener noreferrer" className={`inline-flex items-center gap-1 text-fg underline decoration-line underline-offset-4 transition-colors hover:text-mint hover:decoration-mint ${className}`}>
       {children}
       <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="size-3 shrink-0 text-muted">
         <path d="M5.5 10.5 10.5 5.5M6.5 5.5h4v4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />

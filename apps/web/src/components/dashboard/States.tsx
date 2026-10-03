@@ -17,8 +17,8 @@ export function LoadingState({ rows = 3, label = copy.loading }: { readonly rows
       <div aria-hidden="true" className="divide-y divide-line">
         {Array.from({ length: rows }, (_, i) => (
           <div key={i} className="flex gap-6 px-5 py-4 md:px-6">
-            <span className="h-3 w-24 animate-pulse rounded-full bg-[#1c1c1c] motion-reduce:animate-none" />
-            <span className="h-3 flex-1 animate-pulse rounded-full bg-[#1c1c1c] motion-reduce:animate-none" style={{ maxWidth: `${60 - i * 10}%` }} />
+            <span className="h-3 w-24 animate-pulse rounded-full bg-[#1b2729] motion-reduce:animate-none" />
+            <span className="h-3 flex-1 animate-pulse rounded-full bg-[#1b2729] motion-reduce:animate-none" style={{ maxWidth: `${60 - i * 10}%` }} />
           </div>
         ))}
       </div>
