@@ -1,5 +1,40 @@
 # Lemma Local MCP Bridge
 
+## Install in one command
+
+```bash
+npx -y https://lemma-production-8383.up.railway.app/dl/lemma-mcp-0.1.0.tgz
+```
+
+No environment is required: the packaged `lemma-mcp` (a single bundled file, no dependencies,
+Node >= 22) defaults to the hosted Lemma deployment on Arbitrum Sepolia, with the provider
+address pinned in the package. Register it with your coding agent:
+
+```bash
+# Claude Code
+claude mcp add -s local -t stdio lemma -- npx -y https://lemma-production-8383.up.railway.app/dl/lemma-mcp-0.1.0.tgz
+
+# Codex
+codex mcp add lemma -- npx -y https://lemma-production-8383.up.railway.app/dl/lemma-mcp-0.1.0.tgz
+```
+
+- **Burner wallet.** Without `BUYER_PRIVATE_KEY`, the first start creates a testnet-only wallet
+  in `~/.lemma/wallet.json` (directory 0700, file 0600; `LEMMA_HOME` moves it) and logs its
+  address to stderr. The key never leaves that file: it is not printed, returned or sent.
+  Set `BUYER_PRIVATE_KEY` to use your own wallet instead.
+- **Funding.** Call the free `lemma_wallet` tool: it shows the address, its USDC and ETH balances,
+  the spend caps and today's spend, plus faucet links (test USDC from
+  <https://faucet.circle.com>, Arbitrum Sepolia; gas ETH from
+  <https://www.alchemy.com/faucets/arbitrum-sepolia>).
+- **Workspace.** The repository is `LEMMA_WORKSPACE`, else `CLAUDE_PROJECT_DIR`, else the client's
+  first MCP root, else the server's cwd. The bridge refuses `/`, your home directory and
+  unexpanded placeholders such as `${workspaceFolder}`; if your agent starts servers elsewhere,
+  add `-e LEMMA_WORKSPACE="$PWD"` (Claude Code) or `--env LEMMA_WORKSPACE="$PWD"` (Codex).
+
+Every variable in [Environment variables](#environment-variables) still overrides the
+defaults. The package is built by `npm run pack -w @lemma/bridge` (see
+[Packaging](#packaging)).
+
 ## Purpose and economic role
 
 The bridge is the user-facing MCP server installed beside a coding agent. It injects verified prior work into the agent's workflow while keeping repository access, wallet authority, spending limits, and patch application under local control.
@@ -29,7 +64,7 @@ The bridge is what turns a hosted resolution service into a useful agent capabil
 
 ## Status
 
-Implemented. `lemma-mcp` is a stdio MCP server exposing four tools. It talks to the hosted
+Implemented. `lemma-mcp` is a stdio MCP server exposing five tools. It talks to the hosted
 endpoint at `${LEMMA_API_URL}/mcp` (Streamable HTTP) as an x402 MCP client, per
 [docs/interfaces.md](../../docs/interfaces.md). Unit-tested against an in-process fake Lemma
 server and fake x402 layer (`apps/bridge/test`), and exercised end to end by
@@ -41,6 +76,7 @@ Anvil fork of Arbitrum Sepolia, including an injected dropped paid response.
 
 | Tool | Input | Does |
 |---|---|---|
+| `lemma_wallet` | none | Buyer address, USDC and ETH balances on Arbitrum Sepolia (null with a note if the RPC is unreachable; 4 s timeout), per-resolution and daily caps, today's spend, whether the wallet is a local burner, and faucet links. Free. |
 | `lemma_preview` | `{ kind }` (task kind) | Builds the profile from allowlisted files only, calls remote `lemma_preview`, stores the preview locally, and reports price, warranty and whether local spend policy would allow a purchase. Free. |
 | `lemma_buy_resolution` | `{ previewId }` | Checks local spend policy, pays through x402 (only if the payment request matches the preview), verifies digest and voucher signer, activates the warranty on chain, stores everything in `LEMMA_STATE_DIR`. Recovers instead of re-paying after a lost response or restart. |
 | `lemma_apply_resolution` | `{ resolutionId, apply? }` | `applyBundle` on the workspace. Dry run unless `apply: true`. Returns the change list. |
@@ -97,7 +133,7 @@ buyer key only in the MCP client's env block for this server. It is never sent t
 | Variable | Default | Notes |
 |---|---|---|
 | `LEMMA_API_URL` | `http://localhost:3000` | Hosted server; MCP endpoint is `${LEMMA_API_URL}/mcp` |
-| `LEMMA_WORKSPACE` | process cwd | Repository to profile, patch and test |
+| `LEMMA_WORKSPACE` | `CLAUDE_PROJECT_DIR`, else first MCP client root, else process cwd | Repository to profile, patch and test; `/`, `$HOME` and `${...}` are refused |
 | `BUYER_PRIVATE_KEY` | none | Testnet buyer wallet; required to buy and sign receipts |
 | `LEMMA_PROVIDER_ADDRESS` | none | Expected `payTo` and voucher signer; required to buy |
 | `LEMMA_MAX_USDC_PER_RESOLUTION` | `0.25` | Per-resolution cap (decimal USDC) |
@@ -105,7 +141,13 @@ buyer key only in the MCP client's env block for this server. It is never sent t
 | `USDC_ADDRESS` | `0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d` | Arbitrum Sepolia USDC |
 | `RESOLUTION_WARRANTY_REGISTRY_ADDRESS` | none | Registry for voucher domain check and activation |
 | `ARBITRUM_SEPOLIA_RPC_URL` | none | Needed for warranty activation; treated as a secret |
-| `LEMMA_STATE_DIR` | `~/.lemma` | Ledger, previews, resolutions, receipts, quarantine (files are 0600) |
+| `LEMMA_STATE_DIR` | `LEMMA_HOME`, else `~/.lemma` | Ledger, previews, resolutions, receipts, quarantine (files are 0600) |
+| `LEMMA_HOME` | `~/.lemma` | Where the packaged CLI keeps the burner `wallet.json`; also the default state dir |
+
+The packaged CLI (`npx ... lemma-mcp-0.1.0.tgz`) additionally defaults `LEMMA_API_URL`,
+`LEMMA_PROVIDER_ADDRESS`, `RESOLUTION_WARRANTY_REGISTRY_ADDRESS`, `ARBITRUM_SEPOLIA_RPC_URL`
+and `USDC_ADDRESS` to the hosted deployment (`src/cli.ts`). `dist/index.js` keeps the
+defaults above and never creates a burner wallet.
 
 ### Cursor (`.cursor/mcp.json`)
 
@@ -170,6 +212,8 @@ claude mcp add lemma \
 ## Source layout
 
 - `src/index.ts`: `lemma-mcp` bin (stdio).
+- `src/cli.ts`: entry of the packaged zero-config CLI (production defaults, burner wallet).
+- `src/main.ts`: shared stdio startup.
 - `src/bridge.ts`: wiring.
 - `src/server.ts`: tool definitions.
 - `src/operations.ts`: preview, buy/recover, apply, verify.
@@ -181,6 +225,9 @@ claude mcp add lemma \
 - `src/profile.ts`: allowlisted profile.
 - `src/state.ts`: atomic local state.
 - `src/redaction.ts`: scrubbing and stderr logger.
+- `src/wallet.ts`: local burner wallet file.
+- `src/workspace.ts`: workspace resolution (env, client roots, cwd) and refusals.
+- `scripts/pack.mjs`: esbuild bundle and `npm pack` of the `lemma-mcp` package.
 
 ## Development and tests
 
@@ -189,6 +236,16 @@ claude mcp add lemma \
 - `npm run test -w @lemma/bridge` (or `npx vitest run apps/bridge` from the repo root)
 
 Logs go to stderr only (stdout carries MCP), and every line is scrubbed.
+
+## Packaging
+
+`npm run pack -w @lemma/bridge` bundles `src/cli.ts` with esbuild (ESM, node22, every dependency
+inlined; `@lemma/core` comes from `packages/core/dist`, so build it first) into
+`apps/bridge/pack/dist/lemma-mcp.mjs`, writes `apps/bridge/pack/package.json` (no dependencies)
+and packs it to `apps/web/public/dl/lemma-mcp-<version>.tgz`. That tarball is committed: the
+web build copies `public/` into the dashboard, which the hosted server serves at
+`/dl/lemma-mcp-<version>.tgz`. `test/bundle.test.ts` starts the bundle over stdio with no
+configuration and runs only when the bundle exists.
 
 ## Security constraints
 

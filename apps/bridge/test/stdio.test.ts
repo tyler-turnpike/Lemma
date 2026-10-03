@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import { REPO_ROOT, buyerKey, provider, tempDir } from "./helpers.js";
 
 describe("lemma-mcp stdio entrypoint", () => {
-  it("starts, lists the four bridge tools, and keeps the key out of stderr", async () => {
+  it("starts, lists the five bridge tools, and keeps the key out of stderr", async () => {
     const stderr: string[] = [];
     const transport = new StdioClientTransport({
       command: process.execPath,
@@ -27,7 +27,7 @@ describe("lemma-mcp stdio entrypoint", () => {
     const client = new Client({ name: "smoke", version: "0" });
     await client.connect(transport);
     const { tools } = await client.listTools();
-    expect(tools.map((t) => t.name).sort()).toEqual(["lemma_apply_resolution", "lemma_buy_resolution", "lemma_preview", "lemma_verify_adoption"]);
+    expect(tools.map((t) => t.name).sort()).toEqual(["lemma_apply_resolution", "lemma_buy_resolution", "lemma_preview", "lemma_verify_adoption", "lemma_wallet"]);
     const r = (await client.callTool({ name: "lemma_preview", arguments: { kind: "x402-paywall-mcp-server" } })) as { isError?: boolean; content: Array<{ text: string }> };
     expect(r.isError).toBe(true); // server unreachable: explicit error, no crash
     expect(r.content[0]!.text).toMatch(/lemma_preview failed \(remote\)/);

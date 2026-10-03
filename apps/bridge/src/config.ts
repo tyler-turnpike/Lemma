@@ -28,6 +28,8 @@ const UsdcEnv = (def: string) =>
 const EnvSchema = z.object({
   LEMMA_API_URL: z.preprocess(empty, z.string().default("http://localhost:3000").pipe(z.url({ protocol: /^https?$/ }))),
   LEMMA_WORKSPACE: z.preprocess(empty, z.string().optional()),
+  CLAUDE_PROJECT_DIR: z.preprocess(empty, z.string().optional()),
+  LEMMA_HOME: z.preprocess(empty, z.string().optional()),
   ARBITRUM_SEPOLIA_RPC_URL: z.preprocess(empty, z.url({ protocol: /^https?$/ }).optional()),
   BUYER_PRIVATE_KEY: z.preprocess(empty, z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional()),
   LEMMA_MAX_USDC_PER_RESOLUTION: UsdcEnv("0.25"),
@@ -42,7 +44,10 @@ const EnvSchema = z.object({
 export type BridgeConfig = {
   apiUrl: string;
   mcpUrl: string;
+  /** Best static guess; the bridge resolves (and validates) the effective workspace lazily. */
   workspace: string;
+  /** Where `workspace` came from. "cwd" means MCP client roots may still override it. */
+  workspaceSource: "LEMMA_WORKSPACE" | "CLAUDE_PROJECT_DIR" | "cwd";
   rpcUrl: string | null;
   perResolutionCapAtomic: bigint;
   dailyCapAtomic: bigint;
@@ -62,7 +67,7 @@ export type LoadedConfig = {
   secrets: string[];
 };
 
-function expandHome(p: string): string {
+export function expandHome(p: string): string {
   if (p === "~") return homedir();
   if (p.startsWith("~/")) return join(homedir(), p.slice(2));
   return p;
@@ -77,8 +82,9 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
   }
   const e = parsed.data;
   const apiUrl = e.LEMMA_API_URL.replace(/\/+$/, "");
-  const workspace = resolve(cwd, expandHome(e.LEMMA_WORKSPACE ?? cwd));
-  const stateDirRaw = expandHome(e.LEMMA_STATE_DIR ?? "~/.lemma");
+  const workspaceSource = e.LEMMA_WORKSPACE !== undefined ? "LEMMA_WORKSPACE" : e.CLAUDE_PROJECT_DIR !== undefined ? "CLAUDE_PROJECT_DIR" : "cwd";
+  const workspace = resolve(cwd, expandHome(e.LEMMA_WORKSPACE ?? e.CLAUDE_PROJECT_DIR ?? cwd));
+  const stateDirRaw = expandHome(e.LEMMA_STATE_DIR ?? e.LEMMA_HOME ?? "~/.lemma");
   const stateDir = isAbsolute(stateDirRaw) ? stateDirRaw : resolve(cwd, stateDirRaw);
   const secrets = secretsFromEnv(env);
   if (e.BUYER_PRIVATE_KEY !== undefined) secrets.push(e.BUYER_PRIVATE_KEY);
@@ -89,6 +95,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
       apiUrl,
       mcpUrl: `${apiUrl}/mcp`,
       workspace,
+      workspaceSource,
       rpcUrl: e.ARBITRUM_SEPOLIA_RPC_URL ?? null,
       perResolutionCapAtomic: parseUsdc(e.LEMMA_MAX_USDC_PER_RESOLUTION),
       dailyCapAtomic: parseUsdc(e.LEMMA_DAILY_USDC_CAP),

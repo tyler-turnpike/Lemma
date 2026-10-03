@@ -14,9 +14,9 @@ import {
   type TaskKind,
 } from "@lemma/core";
 import { ApplyError, applyBundle, runAcceptance, summarizeVitestOutput, type ApplyResult } from "@lemma/core/node";
-import type { Address, Hex, LocalAccount } from "viem";
+import { formatEther, type Address, type Hex, type LocalAccount } from "viem";
 
-import { skippedActivation, type WarrantyActivator } from "./chain.js";
+import { readBalances, skippedActivation, type WalletBalances, type WarrantyActivator } from "./chain.js";
 import type { BridgeConfig } from "./config.js";
 import { BridgeError, errorMessage } from "./errors.js";
 import type { SpendLedger } from "./ledger.js";
@@ -26,6 +26,7 @@ import type { Logger } from "./redaction.js";
 import { PaymentRejectedError, RemoteToolError, type RemoteLemma } from "./remote.js";
 import type { StateStore, StoredResolution } from "./state.js";
 import { verifyPurchase } from "./verify.js";
+import { WorkspaceResolver } from "./workspace.js";
 
 export type BridgeDeps = {
   config: BridgeConfig;
@@ -49,6 +50,31 @@ export type BridgeDeps = {
    * unavailable, in which case the post-payment voucher check still applies.
    */
   serverStatus?: () => Promise<{ registry: string | null } | null>;
+  /** Effective workspace (env, client roots, cwd). Defaults to the validated config workspace. */
+  workspace?: WorkspaceResolver;
+  /** Where the buyer key came from; a burner lives in a local file. */
+  walletSource?: { kind: "env" } | { kind: "burner"; file: string };
+  /** Reads on-chain balances for lemma_wallet. Defaults to the configured RPC. */
+  balances?: (address: Address) => Promise<WalletBalances>;
+};
+
+export const FUNDING_LINKS = {
+  usdcFaucet: "https://faucet.circle.com",
+  ethFaucet: "https://www.alchemy.com/faucets/arbitrum-sepolia",
+} as const;
+
+export type WalletResult = {
+  address: Address | null;
+  network: BridgeConfig["network"];
+  chainId: BridgeConfig["chainId"];
+  usdcAddress: Address;
+  balances: { usdc: string; usdcAtomic: string; eth: string; wei: string } | null;
+  balanceNote: string | null;
+  wallet: { kind: "burner"; file: string } | { kind: "env"; file: null } | { kind: "none"; file: null };
+  caps: { perResolutionUsdc: string; dailyUsdc: string };
+  spentTodayUsdc: string;
+  remainingTodayUsdc: string;
+  funding: { usdcFaucet: string; usdcFaucetNote: string; ethFaucet: string };
 };
 
 export type PreviewResult = {
@@ -93,8 +119,15 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export class Bridge {
   private readonly clock: () => Date;
+  private readonly workspaceResolver: WorkspaceResolver;
   constructor(private readonly deps: BridgeDeps) {
     this.clock = deps.clock ?? (() => new Date());
+    this.workspaceResolver = deps.workspace ?? new WorkspaceResolver(deps.config);
+  }
+
+  /** The validated workspace; refuses /, $HOME and unexpanded placeholders. */
+  workspace(): Promise<string> {
+    return this.workspaceResolver.get();
   }
 
   private requireBuyer(): LocalAccount {
@@ -109,13 +142,50 @@ export class Bridge {
   }
 
   // -------------------------------------------------------------------------
+  // Wallet (free, read-only)
+  // -------------------------------------------------------------------------
+
+  async wallet(): Promise<WalletResult> {
+    const { config, ledger, buyer } = this.deps;
+    const spent = await ledger.spentOn(this.clock());
+    const address = buyer?.address ?? null;
+    let balances: WalletResult["balances"] = null;
+    let balanceNote: string | null = null;
+    if (address === null) balanceNote = "no buyer wallet configured";
+    else if (this.deps.balances === undefined && config.rpcUrl === null) balanceNote = "ARBITRUM_SEPOLIA_RPC_URL is not configured; balances unavailable";
+    else {
+      try {
+        const read = this.deps.balances ?? ((a: Address) => readBalances(config.rpcUrl as string, config.usdcAddress, a));
+        const b = await read(address);
+        balances = { usdc: formatUsdc(b.usdcAtomic), usdcAtomic: b.usdcAtomic.toString(), eth: formatEther(b.wei), wei: b.wei.toString() };
+      } catch (error) {
+        balanceNote = `could not read balances from the RPC (${errorMessage(error).slice(0, 200)}); try again later`;
+      }
+    }
+    const source = this.deps.walletSource;
+    return {
+      address,
+      network: config.network,
+      chainId: config.chainId,
+      usdcAddress: config.usdcAddress,
+      balances,
+      balanceNote,
+      wallet: address === null ? { kind: "none", file: null } : source?.kind === "burner" ? { kind: "burner", file: source.file } : { kind: "env", file: null },
+      caps: { perResolutionUsdc: formatUsdc(config.perResolutionCapAtomic), dailyUsdc: formatUsdc(config.dailyCapAtomic) },
+      spentTodayUsdc: formatUsdc(spent),
+      remainingTodayUsdc: formatUsdc(spent >= config.dailyCapAtomic ? 0n : config.dailyCapAtomic - spent),
+      funding: { usdcFaucet: FUNDING_LINKS.usdcFaucet, usdcFaucetNote: "select Arbitrum Sepolia", ethFaucet: FUNDING_LINKS.ethFaucet },
+    };
+  }
+
+  // -------------------------------------------------------------------------
   // Preview
   // -------------------------------------------------------------------------
 
   async preview(kind: TaskKind): Promise<PreviewResult> {
     const { config, remote, store, ledger } = this.deps;
     const task = TaskRequest.parse({ schemaVersion: LEMMA_SCHEMA_VERSION, kind, network: "arbitrum-sepolia" });
-    const profile = await buildWorkspaceProfile(config.workspace, this.deps.profileReader);
+    const profile = await buildWorkspaceProfile(await this.workspace(), this.deps.profileReader);
     const raw = await remote.preview({ task, profile });
     const parsed = Preview.safeParse(raw);
     if (!parsed.success) throw new BridgeError("remote", "server returned an invalid preview", parsed.error.issues.slice(0, 5).map((i) => `${i.path.join(".")}: ${i.message}`));
@@ -350,9 +420,10 @@ export class Bridge {
 
   async apply(resolutionId: string, write: boolean): Promise<ApplyResult> {
     const record = await this.loadVerified(resolutionId);
+    const workspace = await this.workspace();
     let result: ApplyResult;
     try {
-      result = await applyBundle(this.deps.config.workspace, record.resolution.bundle, { dryRun: !write });
+      result = await applyBundle(workspace, record.resolution.bundle, { dryRun: !write });
     } catch (error) {
       if (error instanceof ApplyError) throw new BridgeError("apply", `${error.code}: ${error.message}`);
       throw error;
@@ -371,7 +442,7 @@ export class Bridge {
   async verifyAdoption(resolutionId: string): Promise<AdoptionResult> {
     const buyer = this.requireBuyer();
     const record = await this.loadVerified(resolutionId);
-    const workspace = this.deps.config.workspace;
+    const workspace = await this.workspace();
     let check: ApplyResult;
     try {
       check = await applyBundle(workspace, record.resolution.bundle, { dryRun: true });

@@ -39,6 +39,30 @@ export function createBridgeServer(bridge: Bridge, scrub: Scrubber, log: Logger)
   const server = new McpServer({ name: "lemma-mcp", version: BRIDGE_VERSION });
 
   server.registerTool(
+    "lemma_wallet",
+    {
+      title: "Lemma: buyer wallet, balances and spend caps",
+      description:
+        "Shows the local buyer wallet address, its USDC and ETH balances on Arbitrum Sepolia, the local per-resolution and daily USDC caps, today's spend, and where to get test funds. Free; never reveals the key.",
+    },
+    () =>
+      tool(scrub, log, "lemma_wallet", async () => {
+        const r = await bridge.wallet();
+        const f = r.funding;
+        const lines =
+          r.address === null
+            ? ["No buyer wallet is configured; set BUYER_PRIVATE_KEY (or run lemma-mcp without it to get a local burner wallet)."]
+            : [
+                `Wallet ${r.address} (${r.wallet.kind === "burner" ? `local burner, ${r.wallet.file}` : "from BUYER_PRIVATE_KEY"}) on Arbitrum Sepolia`,
+                r.balances === null ? `Balances: unavailable (${r.balanceNote ?? "unknown"})` : `Balances: ${r.balances.usdc} USDC, ${r.balances.eth} ETH`,
+                `Caps: ${r.caps.perResolutionUsdc} USDC per resolution, ${r.caps.dailyUsdc} USDC per day; spent today ${r.spentTodayUsdc} USDC`,
+                `Fund ${r.address} with test USDC (${f.usdcFaucet}, ${f.usdcFaucetNote}) and a little Sepolia ETH for gas (${f.ethFaucet}).`,
+              ];
+        return { text: lines.join("\n"), data: r };
+      }),
+  );
+
+  server.registerTool(
     "lemma_preview",
     {
       title: "Lemma: free compatibility preview",

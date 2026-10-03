@@ -28,3 +28,7 @@ contracts/broadcast/
 
 # Fork rehearsal deployment records (scripts/demo-fork.ts)
 contracts/deployments/fork-*.json
+
+# Bundled lemma-mcp package build output (apps/bridge/scripts/pack.mjs). The packed
+# apps/web/public/dl/lemma-mcp-*.tgz is tracked: the hosted dashboard serves it.
+apps/bridge/pack/dist/

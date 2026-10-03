@@ -1,0 +1,16 @@
+{
+  "name": "lemma-mcp",
+  "version": "0.1.0",
+  "description": "Lemma local MCP bridge: buy verified, warranted resolutions for coding agents (Arbitrum Sepolia testnet).",
+  "type": "module",
+  "bin": {
+    "lemma-mcp": "dist/lemma-mcp.mjs"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "UNLICENSED"
+}

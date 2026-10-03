@@ -1,5 +1,5 @@
 import type { SignedResolutionVoucher } from "@lemma/core";
-import { createPublicClient, createWalletClient, http, type Address, type Hex, type LocalAccount } from "viem";
+import { createPublicClient, createWalletClient, erc20Abi, http, type Address, type Hex, type LocalAccount } from "viem";
 import { arbitrumSepolia } from "viem/chains";
 
 import { errorMessage } from "./errors.js";
@@ -108,5 +108,25 @@ export class ViemWarrantyActivator implements WarrantyActivator {
     } catch (error) {
       return { status: "failed", txHash: null, blockNumber: null, reason: errorMessage(error).slice(0, 300), at: now() };
     }
+  }
+}
+
+export type WalletBalances = { usdcAtomic: bigint; wei: bigint };
+
+/** Reads the USDC and ETH balances of `address` on Arbitrum Sepolia, bounded by `timeoutMs`. */
+export async function readBalances(rpcUrl: string, usdc: Address, address: Address, timeoutMs = 4_000): Promise<WalletBalances> {
+  const client = createPublicClient({ chain: arbitrumSepolia, transport: http(rpcUrl, { timeout: timeoutMs, retryCount: 0 }) });
+  let timer: NodeJS.Timeout | undefined;
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`RPC did not answer within ${timeoutMs} ms`)), timeoutMs);
+  });
+  try {
+    const [usdcAtomic, wei] = await Promise.race([
+      Promise.all([client.readContract({ address: usdc, abi: erc20Abi, functionName: "balanceOf", args: [address] }), client.getBalance({ address })]),
+      deadline,
+    ]);
+    return { usdcAtomic, wei };
+  } finally {
+    clearTimeout(timer);
   }
 }
