@@ -11,7 +11,7 @@
 
 Lemma lets a coding agent ask, before it writes any code, whether verified prior integration work already fits the repository in front of it. The preview is free. If a curated Capability Release fits, a local MCP bridge pays a per-request quote in USDC through x402 (from half a cent, scaled to the agent's model, most of it charged only if the tests pass), receives a provider-signed resolution (a patch bundle plus a pinned acceptance test), applies it, and runs the test. Every paid resolution reserves provider bond in a warranty registry on Arbitrum Sepolia. If an evaluator confirms that the adoption failed, the buyer is refunded from that bond. Lemma sells verified applicability and a ready integration path. It does not sell ownership of open-source code.
 
-> **Status: working testnet MVP.** The contract is deployed on Arbitrum Sepolia, both releases are registered and bonded, and the full product flow runs end to end on a fork with `npm run demo:fork`. The full flow has also run live on Arbitrum Sepolia: [live x402 settlement](https://sepolia.arbiscan.io/tx/0x38e6c25b7b690e61d6de9a3ab533d7a08d71f2e0f62bdf26ae35d887d4a4f869), warranty activation, evaluator outcomes and a [bond refund](https://sepolia.arbiscan.io/tx/0x4ce2d7730211aa1e37604ed5adccc9803a35ec487379eed61c87887fed9bc1ce) (`npm run demo:testnet -- --yes`). The paired 20-run benchmark measured 74.9% fewer tokens but missed the all-in cost target, so Lemma makes **no savings claim**. See [Status and limitations](#status-trust-assumptions-and-limitations).
+> **Status: working testnet MVP.** The contract is deployed on Arbitrum Sepolia, both releases are registered and bonded, and the full product flow runs end to end on a fork with `npm run demo:fork`. The full flow has also run live on Arbitrum Sepolia: [live x402 settlement](https://sepolia.arbiscan.io/tx/0x38e6c25b7b690e61d6de9a3ab533d7a08d71f2e0f62bdf26ae35d887d4a4f869), warranty activation, evaluator outcomes and a [bond refund](https://sepolia.arbiscan.io/tx/0x4ce2d7730211aa1e37604ed5adccc9803a35ec487379eed61c87887fed9bc1ce) (`npm run demo:testnet -- --yes`). The first paired 20-run benchmark (v1) cut tokens 75% but missed the cost target at a provisional 0.12 USDC price; Lemma repriced from that measurement and the re-run (v3, 0.005 USDC) **met every pre-registered criterion: 58.5% lower all-in cost, 78.3% fewer tokens, 9/9 passes vs 7/9**. See [Benchmark](#benchmark) and [Status and limitations](#status-trust-assumptions-and-limitations).
 
 ## The problem
 
@@ -187,7 +187,8 @@ Tests need no environment variables. TypeScript and Solidity share fixed EIP-712
 - **Testnet only.** Everything runs on Arbitrum Sepolia with test USDC. No real money moves, and testnet payments are not revenue.
 - **The evaluator is a trusted, team-operated key.** It is a separate key from the provider, but it is not decentralized arbitration. Lemma is not a correctness oracle. It demonstrates an economic mechanism (bonded recourse after payment), not trustless proof that software works.
 - **One first-party provider.** The server, the provider, and both releases are run by the team. This is a curated catalog of two releases, not a marketplace.
-- **Provisional evidence.** Both releases are marked `provisional` because the benchmark has not run. The demo server runs with `LEMMA_ALLOW_PROVISIONAL=true` so they can be purchased, and every preview says so.
+- **Evidence is narrow.** The 1.1.0 releases are priced from lemma-bench-v1 and validated by lemma-bench-v3: three tasks on Lemma's own fixtures, three repetitions per arm, one cheap model. The provisional override is off in production; nothing is sold that fails the pricing rule.
+- **Quotes are self-declared.** The buyer's agent declares its model for the quote, and the success fee is collected by the server, not the registry (see [docs/economics.md](docs/economics.md#per-request-quote)).
 - **Receipts are not proof of savings.** Adoption Receipts record outcomes. Only the paired benchmark can show causal savings.
 
 **Known limitations**
@@ -206,17 +207,23 @@ Tests need no environment variables. TypeScript and Solidity share fixed EIP-712
 
 **Success criteria:** treatment median all-in cost and median total tokens are each at least 25 percent lower, no pass-rate regression on any task, and 0 USDC spent on the no-match task.
 
-**Result (2026-10-02, 20/20 runs, verdict: not validated).**
+**Current result: lemma-bench-v3 (2026-10-03, 20/20 runs, verdict: validated).** Releases sold at 0.005 USDC (`x402-mcp-*@1.1.0`), the provisional override off.
 
 | Matched tasks, medians | Control | Lemma |
 |---|---|---|
-| Total tokens | 963,971 | 242,443 (**74.9% fewer**) |
-| Raw model cost (estimate) | $0.0336 | $0.0115 (about 66% lower) |
-| All-in cost, incl. 0.12 USDC price | $0.0336 | $0.1306 (**288.3% higher**) |
-| Duration | 95.9 s | 42.4 s |
-| Acceptance pass rate | 8/9 | 9/9 |
+| Total tokens | 1,129,792 | 245,045 (**78.3% fewer**) |
+| All-in cost, incl. the 0.005 USDC price | $0.0403 | $0.0167 (**58.5% lower**) |
+| Duration | 115.3 s | 41.9 s |
+| Acceptance pass rate | 7/9 | 9/9 |
 
-The no-match task spent 0 USDC in the Lemma arm. **The pre-registered 25% all-in cost target was missed, so Lemma claims no savings.** On a model this cheap (about $0.03 per control run), the fixed 0.12 USDC price is about four times the model cost it saves; the price would need to be under roughly $0.022 to break even at these numbers. Token and time reductions are real measurements, not a cost claim. Disclosed limitations: one Lemma run's purchase never settled (no USDC moved) and the agent solved the task unaided; inside the sandbox, vitest often could not create its temp directory, which likely inflated control-arm tokens. Aggregate: [`packages/benchmark/published/aggregate.json`](packages/benchmark/published/aggregate.json), also on the [/benchmark](https://lemma-production-8383.up.railway.app/benchmark) page.
+The no-match task spent 0 USDC in the Lemma arm. Costs are estimates from a frozen list-price table (token counts are the independent measure); three repetitions per arm on Lemma's own fixtures are indicative, not statistically powered. v3 ran before per-request quotes shipped, so the Lemma arm paid only the 0.005 floor; today's quote for the same model adds a 0.001 success fee on a pass, which at these medians is still 56% lower. Aggregate: [`packages/benchmark/published/aggregate.json`](packages/benchmark/published/aggregate.json), also on the [/benchmark](https://lemma-production-8383.up.railway.app/benchmark) page.
+
+**How we got here, kept in full:**
+
+- **lemma-bench-v1** (2026-10-02, [aggregate](packages/benchmark/published/lemma-bench-v1.json)): releases at a provisional 0.12 USDC. Tokens 74.9% fewer, passes 9/9 vs 8/9, but all-in cost 288% **higher**: the price was 5.4× the measured saving ($0.022 per task). The target was missed and no savings were claimed. Lemma's own pricing rule (price ≤ 30% of measured saving) would have refused that sale; only the testnet override allowed it.
+- **Repricing.** The 1.1.0 releases carry byte-identical payloads, priced from the v1 measurement at 0.005 USDC (21.7% of the saving) and sold under the rule with the override removed.
+- **lemma-bench-v2** (stopped after 8 runs, not aggregated, records kept): a relabelled comment in the 1.1.0 payloads made the acceptance test differ from the installed one, so every patch was refused and the agent wrote the code by hand. It measured that defect, not the price; fixed, with a regression test.
+- **lemma-bench-v3**: the same frozen matrix at the new price, above.
 
 ```bash
 npm run benchmark -- --plan            # print the frozen 20-run matrix (no API calls)

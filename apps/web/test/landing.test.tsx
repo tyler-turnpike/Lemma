@@ -75,8 +75,8 @@ describe("landing page", () => {
     expect(html).toContain("Arbitrum Sepolia testnet");
     expect(html).toContain("quoted per request");
     expect(html).not.toContain("0.12");
-    expect(html).toContain("75%");
-    expect(html).toContain("All-in cost not yet lower");
+    expect(html).toContain("78%");
+    expect(html).toContain("All-in cost 58% lower");
     expect(html).not.toContain("Stop paying");
     expect(html).not.toContain("Stop rediscovering");
   });
@@ -97,10 +97,10 @@ describe("live proof figures", () => {
     const live = figuresFrom(aggregate);
     expect(live.treatmentRuns).toBeGreaterThan(0);
     expect(figuresFrom(null)).toEqual(fallbackFigures);
-    expect(Math.round(fallbackFigures.tokenReduction * 100)).toBe(75);
-    expect(fallbackFigures.costReduction).toBeLessThan(0);
+    expect(Math.round(fallbackFigures.tokenReduction * 100)).toBe(78);
+    expect(Math.round(fallbackFigures.costReduction * 1000) / 10).toBe(58.4);
     expect(`${fallbackFigures.treatmentPassed}/${fallbackFigures.treatmentRuns}`).toBe("9/9");
-    expect(`${fallbackFigures.controlSeconds}s`).toBe("96s");
+    expect(`${fallbackFigures.controlSeconds}s`).toBe("115s");
     expect(`${fallbackFigures.treatmentSeconds}s`).toBe("42s");
   });
 });

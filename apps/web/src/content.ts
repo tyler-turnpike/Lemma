@@ -64,18 +64,18 @@ export const hero = {
 
 /**
  * Benchmark figures shown on the landing page. Live values come from /api/v1/benchmarks; these
- * are the published lemma-bench-v1 medians (matched tasks, n=9 per arm), used when the API is offline.
+ * are the published lemma-bench-v3 medians (matched tasks, n=9 per arm), used when the API is offline.
  */
 export const benchmarkFallback = {
-  controlTokens: 963_971,
-  treatmentTokens: 242_443,
-  controlPassed: 8,
+  controlTokens: 1_129_792,
+  treatmentTokens: 245_045,
+  controlPassed: 7,
   treatmentPassed: 9,
   runsPerArm: 9,
-  controlDurationMs: 95_891,
-  treatmentDurationMs: 42_418,
-  controlCostUsd: 0.033625,
-  treatmentCostUsd: 0.130562,
+  controlDurationMs: 115_296,
+  treatmentDurationMs: 41_911,
+  controlCostUsd: 0.040297,
+  treatmentCostUsd: 0.016744,
 } as const;
 
 export const liveProof = {
@@ -84,7 +84,7 @@ export const liveProof = {
   settlement: "Featured settlement",
   resolution: "Resolution record",
   measured: "Measured on testnet",
-  honest: "All-in cost not yet lower at the current price",
+  honest: "All-in cost not lower at the measured price",
   benchmarkLink: "See benchmark",
 } as const;
 
@@ -327,7 +327,7 @@ export const dashboard = {
         {
           version: "lemma-bench-v3",
           status: "Current",
-          body: "The same frozen 20-run matrix, re-run with releases sold at the price derived from v1 (0.005 USDC, x402-mcp-*@1.1.0) and the provisional override off.",
+          body: "The same frozen 20-run matrix, re-run with releases sold at the price derived from v1 (0.005 USDC, x402-mcp-*@1.1.0) and the provisional override off. Validated: all-in cost 58.5% lower, tokens 78.3% lower, 9/9 passes vs 7/9, 0 USDC on the no-match task. It ran before per-request quotes shipped, so buyers paid only the 0.005 floor; today's luna quote adds a 0.001 success fee on a pass (56% lower at the same medians). Its file-change counts include a node compile cache; that count is not a verdict metric.",
         },
         {
           version: "lemma-bench-v2",
