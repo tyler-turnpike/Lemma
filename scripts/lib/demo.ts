@@ -51,7 +51,13 @@ type BuyData = {
   files: Array<{ path: string; op: string }>;
 };
 type ApplyData = { dryRun: boolean; filesChanged: number; changes: Array<{ path: string; op: string; status: string }>; dependencyChanges: Array<{ section: string; name: string; version: string }> };
-type VerifyData = { outcome: string; submitted: boolean; receiptId: string | null; submitError: string | null; receipt: { evidenceDigest: Hex; testSummary: { passed: number; failed: number; skipped: number; durationMs: number } } };
+type VerifyData = {
+  outcome: string;
+  submitted: boolean;
+  receiptId: string | null;
+  submitError: string | null;
+  successFee: { status: "none" } | { status: "paid"; amountUsdc: string; txHash: string | null; previously: boolean } | { status: "failed"; amountUsdc: string; reason: string };
+  receipt: { evidenceDigest: Hex; testSummary: { passed: number; failed: number; skipped: number; durationMs: number } } };
 
 const TASK_SERVER = "x402-paywall-mcp-server";
 const TASK_CLIENT = "x402-paying-mcp-client";
@@ -71,7 +77,7 @@ export async function runDemo(cfg: DemoConfig): Promise<void> {
   for (const d of [stateDir, wsRoot, logDir]) mkdirSync(d, { recursive: true });
 
   const sessions: BridgeSession[] = [];
-  const bridgeFor = async (workspace: string, apiUrl: string = cfg.serverUrl) => {
+  const bridgeFor = async (workspace: string, apiUrl: string = cfg.serverUrl, agentModel?: string) => {
     const env: BridgeEnv = {
       LEMMA_API_URL: apiUrl,
       LEMMA_WORKSPACE: workspace,
@@ -82,6 +88,7 @@ export async function runDemo(cfg: DemoConfig): Promise<void> {
       LEMMA_STATE_DIR: stateDir,
       LEMMA_MAX_USDC_PER_RESOLUTION: "0.25",
       LEMMA_DAILY_USDC_CAP: "1.00",
+      ...(agentModel === undefined ? {} : { LEMMA_AGENT_MODEL: agentModel }),
     };
     const s = await BridgeSession.start(env, logDir);
     sessions.push(s);
@@ -133,7 +140,15 @@ export async function runDemo(cfg: DemoConfig): Promise<void> {
   const showPreview = (p: PreviewData) => {
     const pv = p.preview;
     narr.kv("decision", `${pv.decision}${pv.release !== null ? `  (${pv.release})` : ""}`);
-    if (pv.priceAtomic !== null) narr.kv("price", `${formatUsdc(BigInt(pv.priceAtomic))} USDC`);
+    if (pv.priceAtomic !== null) {
+      const q = pv.quote ?? null;
+      narr.kv(
+        "price",
+        q === null || q.successFeeAtomic === "0"
+          ? `${formatUsdc(BigInt(pv.priceAtomic))} USDC`
+          : `${formatUsdc(BigInt(pv.priceAtomic))} USDC now + ${formatUsdc(BigInt(q.successFeeAtomic))} USDC only if the tests pass (quote for ${q.model}: 25% of an expected ${formatUsdc(BigInt(q.expectedSavingAtomic))} USDC saving)`,
+      );
+    }
     if (pv.warranty !== null) narr.kv("warranty", `coverage ${formatUsdc(BigInt(pv.warranty.bondAtomic))} USDC, claim window ${pv.warranty.claimWindowSeconds / 3600}h`);
     narr.kv("evidence", pv.evidence === null ? "none" : `${pv.evidence.status}${pv.expectedSavingAtomic !== null ? `, expected saving ${formatUsdc(BigInt(pv.expectedSavingAtomic))} USDC` : ""}`);
     narr.kv("provisional override", pv.provisionalOverride ? "YES (pricing rule bypassed)" : "no: priced from measured evidence, sold under the 30% rule");
@@ -196,6 +211,8 @@ export async function runDemo(cfg: DemoConfig): Promise<void> {
     if (!verify.ok) throw new Error(`lemma_verify_adoption failed: ${verify.error.code} ${verify.error.message}`);
     const t = verify.data.receipt.testSummary;
     narr.kv("acceptance", `${verify.data.outcome}: ${t.passed} passed, ${t.failed} failed (${t.durationMs} ms)`);
+    const fee = verify.data.successFee;
+    if (fee.status !== "none") narr.kv("success fee", fee.status === "paid" ? `${fee.amountUsdc} USDC paid over x402${fee.txHash ? ` (tx ${fee.txHash})` : ""}` : `NOT paid: ${fee.reason}`);
     narr.kv("receipt", verify.data.submitted ? `signed by buyer and accepted (receiptId ${verify.data.receiptId})` : `NOT submitted: ${verify.data.submitError}`);
     narr.kv("evidence digest", verify.data.receipt.evidenceDigest);
     return verify.data;
@@ -221,7 +238,8 @@ export async function runDemo(cfg: DemoConfig): Promise<void> {
     narr.step("1", "Agent task: add x402 payments (Arbitrum Sepolia) to a TypeScript MCP server");
     const wsA = fixtureWorkspace("mcp-server-exact", wsRoot);
     narr.kv("workspace", `${wsA} (copy of catalog fixture mcp-server-exact)`);
-    const bridgeA = await bridgeFor(wsA);
+    // This agent declares a pricier model, so its quote (and its success fee) is larger.
+    const bridgeA = await bridgeFor(wsA, cfg.serverUrl, "gpt-5.6-terra");
     narr.kv("bridge tools", (await bridgeA.tools()).join(", "));
 
     const happy = await previewAndBuy(bridgeA, TASK_SERVER, "happy path", {
@@ -232,11 +250,19 @@ export async function runDemo(cfg: DemoConfig): Promise<void> {
     const afterAgain = await usdcBalance(c.pub, cfg.buyer.address);
     narr.check(again.ok && again.data.status === "already-owned" && afterAgain === start.buyerUsdc - price, "repeat buy returns the owned resolution without a second payment");
 
+    const quoteA = happy.preview.quote ?? null;
+    narr.check(quoteA !== null && quoteA.model === "gpt-5.6-terra" && BigInt(quoteA.successFeeAtomic) > 0n && quoteA.floorAtomic === happy.preview.priceAtomic, "quote scaled to the declared model: registered price up front, success fee on top");
+    const preVerify = await snapshot();
     const adoptA = await applyAndVerify(bridgeA, happy.buy.resolutionId, {
       apply: ["6", "lemma_apply_resolution: dry run, then apply"],
-      verify: ["7", "lemma_verify_adoption: acceptance recipe + buyer-signed Adoption Receipt"],
+      verify: ["7", "lemma_verify_adoption: acceptance recipe, success fee over x402, buyer-signed Adoption Receipt"],
     });
     narr.check(adoptA.outcome === "passed" && adoptA.submitted, "acceptance passed and the server accepted the receipt");
+    const feeA = quoteA === null ? 0n : BigInt(quoteA.successFeeAtomic);
+    const postVerify = await snapshot();
+    narr.check(adoptA.successFee.status === "paid" && preVerify.buyerUsdc - postVerify.buyerUsdc === feeA && postVerify.providerUsdc - preVerify.providerUsdc === feeA, `success fee paid after the pass: exactly ${usdc(feeA)} buyer -> provider`);
+    const feeSummary = (await (await fetch(`${cfg.serverUrl}/api/v1/resolutions/${happy.buy.resolutionId}`)).json()) as { successFee?: { amountAtomic?: string } | null };
+    narr.check(feeSummary.successFee?.amountAtomic === quoteA?.successFeeAtomic, "server recorded the success fee against the resolution");
     const receipts = (await (await fetch(`${cfg.serverUrl}/api/v1/adoption-receipts?resolutionId=${happy.buy.resolutionId}`)).json()) as { receipts: Array<{ outcome: string }> };
     narr.check(receipts.receipts.at(-1)?.outcome === "passed", "dashboard API lists the passed receipt");
 
@@ -280,6 +306,7 @@ export async function runDemo(cfg: DemoConfig): Promise<void> {
     if (proxy !== undefined) narr.check(proxy.dropped === 1, "the paid response was dropped once; the buyer still paid exactly once (checked above)");
     const adoptF = await applyAndVerify(bridgeF, failed.buy.resolutionId);
     narr.check(adoptF.outcome === "failed" && adoptF.submitted, "acceptance failed and the buyer's signed failed receipt was accepted");
+    narr.check(adoptF.successFee.status === "none", "no success fee on a failed adoption");
     const preFail = await snapshot();
     const fail = evaluatorCli(["finalize", "--resolution", failed.buy.resolutionId, "--result", "failed", "--yes"]);
     narr.tx("finalizeOutcome(Failed) signed with the EVALUATOR key", fail.txHash as string);

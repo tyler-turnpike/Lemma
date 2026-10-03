@@ -57,9 +57,9 @@ export type Snapshot = Map<string, string>;
 /** Top-level scratch dirs excluded from change counts: Codex sandbox TMPDIR (.tmp) and vitest caches (.vitest-tmp). */
 const SCRATCH_DIRS = new Set([".tmp", ".vitest-tmp"]);
 
-/** A top-level dir is a test-runner cache (vite/vitest, node compile cache) when it holds `ssr/` or `node-compile-cache/`. */
+/** A top-level dir is a test-runner cache (vite/vitest, node compile cache) when it is or holds `node-compile-cache/`, or holds `ssr/`. */
 function isCacheDir(path: string): boolean {
-  return existsSync(join(path, "ssr")) || existsSync(join(path, "node-compile-cache"));
+  return path.endsWith(`${sep}node-compile-cache`) || existsSync(join(path, "ssr")) || existsSync(join(path, "node-compile-cache"));
 }
 
 /** path -> sha256 of every regular file, excluding node_modules, .git and top-level scratch dirs. */

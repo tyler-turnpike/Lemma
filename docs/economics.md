@@ -16,13 +16,36 @@ Adoption Receipts are evidence. They are not tradable assets and do not mint rew
 
 ## Pricing rule
 
-For the MVP, a release has a fixed USDC price. The resolver may recommend purchase only when:
+Each release has a registered USDC price, set from its measured saving. The resolver may offer a purchase only when:
 
 `price <= 30 percent of measured expected raw model-cost saving`
 
 The bridge separately enforces the user's per-resolution and daily limits. Prices use six-decimal atomic USDC integers, never floating-point currency.
 
 If no frozen benchmark supports a release and profile, it may be previewed but not sold.
+
+## Per-request quote
+
+A token reduction is worth more on a pricier model, so each preview carries a quote scaled to the buyer:
+
+```
+expectedSaving(model) = measuredSaving × inputPrice(model) / inputPrice(benchmarkModel)
+quote = clamp(roundUp(25% × expectedSaving(model), 0.0005 USDC), registeredPrice, 0.25 USDC)
+```
+
+- **Model.** The agent declares its model (`model` on the bridge's `lemma_preview`, or `LEMMA_AGENT_MODEL`). Unknown or missing models are priced as the benchmark model. The table is the frozen OpenAI list-price table the benchmark uses (`packages/core/src/pricing.ts`).
+- **Share.** 25% of the expected saving, below the 30% rule, so the buyer keeps at least 75% of what Lemma saves. A quote that rounding would push over the rule falls back to the registered price.
+- **Settlement.** The registered price is the floor and is paid up front; it is exactly what the warranty registry bonds and refunds. The rest of the quote is a **success fee**, paid over x402 (`lemma_pay_success_fee`) only after the pinned acceptance tests pass. A failed adoption owes no fee and gets the up-front price refunded from the bond, so nothing paid before success is ever outside the warranty. No contract change is needed: the registry still sees one fixed price per release.
+
+Quotes for `x402-mcp-server@1.1.0` (measured saving 0.023063 USDC on gpt-5.6-luna, registered price 0.005):
+
+| Declared model | Expected saving | Up front | On success | Total |
+|---|---|---|---|---|
+| gpt-5.6-luna (or unknown) | 0.023 | 0.005 | 0.001 | 0.006 |
+| gpt-5.6-terra | 0.231 | 0.005 | 0.053 | 0.058 |
+| gpt-5.5 | 0.577 | 0.005 | 0.1395 | 0.1445 |
+
+**Trust.** The model is self-declared: declaring a cheaper one lowers the fee. That is acceptable because every quote, including the floor, passes the pricing rule; the rule protects the buyer. A modified bridge could also skip the fee. The server records the fee owed per resolution, and a passed receipt submitted without it marks the buyer delinquent: the server refuses that address any further sale.
 
 ## Warranty
 

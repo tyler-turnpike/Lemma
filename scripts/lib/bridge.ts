@@ -18,6 +18,8 @@ export type BridgeEnv = {
   LEMMA_PROVIDER_ADDRESS: string;
   RESOLUTION_WARRANTY_REGISTRY_ADDRESS: string;
   ARBITRUM_SEPOLIA_RPC_URL: string;
+  /** Declared agent model; scales the quote. */
+  LEMMA_AGENT_MODEL?: string;
   LEMMA_STATE_DIR: string;
   LEMMA_MAX_USDC_PER_RESOLUTION?: string;
   LEMMA_DAILY_USDC_CAP?: string;

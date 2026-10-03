@@ -85,6 +85,9 @@ export interface ResolutionSummary {
     readonly latestOutcome: AdoptionOutcome | null;
     readonly latestAt: string | null;
   };
+  /** Per-request quote; null for resolutions sold before quotes existed. */
+  readonly quote: { readonly model: string; readonly floorAtomic: string; readonly successFeeAtomic: string; readonly totalAtomic: string } | null;
+  readonly successFee: { readonly txHash: Hex; readonly amountAtomic: string; readonly settledAt: string } | null;
 }
 
 export type AdoptionOutcome = "passed" | "failed" | "abandoned";

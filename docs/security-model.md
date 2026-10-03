@@ -51,6 +51,8 @@
 
 The evaluator is a separate team-operated key, not decentralized arbitration. External pilots use public repositories so the evaluator can inspect evidence without receiving private source. The server and provider remain first-party infrastructure.
 
+Success fees are collected off chain by the server, not enforced by the registry. The buyer self-declares its model for the quote, and a modified bridge could report a pass without paying the fee; the server then marks that buyer delinquent and refuses it further sales. The warranty covers only the up-front price, which is all a buyer has paid before the tests pass.
+
 These assumptions must be visible in the dashboard and submission. The MVP demonstrates an economic mechanism, not trustless software correctness.
 
 ## Deferred controls

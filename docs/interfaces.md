@@ -14,14 +14,17 @@ Streamable HTTP at `POST {LEMMA_API_URL}/mcp`. Every tool declares an `inputSche
 
 | Tool | Paid | Input | Output |
 |---|---|---|---|
-| `lemma_preview` | no | `{ task: TaskRequest, profile: RepositoryProfile }` | `Preview` (persisted, has `previewId`) |
+| `lemma_preview` | no | `{ task: TaskRequest, profile: RepositoryProfile, pricing?: { model } }` | `Preview` (persisted, has `previewId`; `quote` when the release has measured savings) |
 | `lemma_purchase_resolution` | **x402** | `{ previewId, buyer }` | `{ resolution: CompatibilityResolution, voucher: SignedResolutionVoucher }` |
+| `lemma_pay_success_fee` | **x402** | `{ resolutionId, buyer }` | `{ successFee: { resolutionId, amountAtomic, txHash } }` |
 | `lemma_recover_resolution` | no | `{ previewId, buyer }` | same as purchase, or `{ found: false }` |
 | `lemma_submit_receipt` | no | `SignedAdoptionReceipt` | `{ accepted: true, receiptId }` |
 
 Rules:
 
 - The x402 amount required by `lemma_purchase_resolution` equals the preview's `priceAtomic`. The server refuses before payment when the preview is missing, expired, not purchasable, or already settled for that `(previewId, buyer)`. In the already-settled case the error says to call `lemma_recover_resolution`.
+- `Preview.quote` is `{ model, basisModel, expectedSavingAtomic, floorAtomic, successFeeAtomic, totalAtomic, captureBps }` with `floorAtomic == priceAtomic` and `total = floor + successFee` (see docs/economics.md). The purchase charges only `priceAtomic`.
+- `lemma_pay_success_fee` charges the preview's `quote.successFeeAtomic`, only for the resolution's buyer, once (`success_fee_paid` after). It refuses `no_success_fee` when the quote had none. Pay it after the acceptance tests pass and before submitting the passed receipt: a `passed` receipt for a resolution whose fee is unpaid marks the buyer delinquent, and purchases by a delinquent buyer are refused before payment (`buyer_delinquent`).
 - One settled purchase per `(previewId, buyer)`. Recovery returns that exact resolution and voucher, so a lost response never causes a second payment.
 - `resolution.paymentHash` is the settlement transaction hash. `voucher.voucher.paymentHash` holds the same value.
 - The voucher is signed by the provider key over the EIP-712 `ResolutionVoucher` type with domain `lemmaDomain(registryAddress, 421614)`. `amount` equals the release price, and `payloadDigest` equals `bundleDigest(resolution.bundle)`.
@@ -29,14 +32,14 @@ Rules:
 - The x402 payer (`authorization.from` of the EIP-3009 payload) must equal `buyer`; otherwise the server refuses before verification (`payer_mismatch`).
 - `previewId` is a random 32-byte server identifier and a preview is purchasable for 30 minutes after it is issued. Treat it as a bearer value: `(previewId, buyer)` is what recovery needs.
 - The paid response carries the signed voucher directly. The `@x402/mcp` wrapper settles after the tool handler but before returning, and the server signs the voucher in its `onAfterSettlement` hook, so `paymentHash` is the real settlement transaction. The x402 `SettleResponse` is also in `_meta["x402/payment-response"]`. If the response is lost, `lemma_recover_resolution` returns the identical objects.
-- Tool errors are results with `isError: true` and `{ error: { code, message } }` (codes include `preview_not_found`, `preview_expired`, `not_purchasable`, `release_unavailable`, `already_settled`, `purchase_in_progress`, `payer_mismatch`, `paid_tools_disabled`, `invalid_signature`, `buyer_mismatch`, `resolution_not_found`). An x402 payment challenge is the standard `PaymentRequired` result (`structuredContent` with `x402Version` and `accepts`).
+- Tool errors are results with `isError: true` and `{ error: { code, message } }` (codes include `buyer_delinquent`, `no_success_fee`, `success_fee_paid`, `preview_not_found`, `preview_expired`, `not_purchasable`, `release_unavailable`, `already_settled`, `purchase_in_progress`, `payer_mismatch`, `paid_tools_disabled`, `invalid_signature`, `buyer_mismatch`, `resolution_not_found`). An x402 payment challenge is the standard `PaymentRequired` result (`structuredContent` with `x402Version` and `accepts`).
 
 ## Read-only HTTP API
 
 - `GET /health` returns `{ ok, version }` (503 when the database is unreachable).
 - `GET /api/v1/status` returns chain, USDC, registry, provider, facilitator and evaluator public addresses, plus the trust notice.
 - `GET /api/v1/releases` and `GET /api/v1/releases/:id`.
-- `GET /api/v1/resolutions/:resolutionId` returns the resolution summary, payment tx, voucher and receipt status. It never returns the patch bundle.
+- `GET /api/v1/resolutions/:resolutionId` returns the resolution summary, payment tx, voucher, receipt status, the quote (`quote`) and the paid success fee (`successFee`). It never returns the patch bundle.
 - `GET /api/v1/adoption-receipts?resolutionId=`.
 - `GET /api/v1/benchmarks` returns the published aggregate, or `{ status: "not-run" }`.
 
@@ -46,18 +49,22 @@ Self-hosted at `/facilitator/supported`, `/facilitator/verify` and `/facilitator
 
 ## Bridge tools (local stdio MCP, exposed to the coding agent)
 
+Install: `npx -y https://lemma-production-8383.up.railway.app/dl/lemma-mcp-0.1.0.tgz` (see /connect).
+
 | Tool | Does |
 |---|---|
-| `lemma_preview` | Builds the profile from the workspace (allowlisted files only) and calls remote `lemma_preview` |
+| `lemma_preview` | Builds the profile from the workspace (allowlisted files only) and calls remote `lemma_preview`. Optional `model` (else `LEMMA_AGENT_MODEL`) is sent as `pricing.model` |
 | `lemma_buy_resolution` | Checks the spend policy locally, then pays through x402, verifies the payload digest and voucher signer, activates the warranty on chain, and stores the resolution locally. Recovers automatically after a lost response. |
 | `lemma_apply_resolution` | `applyBundle`, with `dryRun` defaulting to true |
-| `lemma_verify_adoption` | `runAcceptance`, then signs an `AdoptionReceipt` (EIP-191 over `adoptionReceiptDigest`) and submits it |
+| `lemma_wallet` | Free. Buyer address, USDC and ETH balances, caps, today's spend, faucet links |
+| `lemma_verify_adoption` | `runAcceptance`; on a pass, pays the quoted success fee (same guard and caps as purchases), then signs an `AdoptionReceipt` (EIP-191 over `adoptionReceiptDigest`) and submits it. If the fee cannot be paid the receipt is held and the call can be repeated |
 
 Bridge-side rules that depend on the server:
 
 - The bridge sends `buyer` = its own wallet address and pays from the same wallet, so the server's `payer_mismatch` check always holds for a correct bridge.
 - Before paying it reads `GET /api/v1/status` and refuses when `registry` differs from its `RESOLUTION_WARRANTY_REGISTRY_ADDRESS` (otherwise the voucher would be rejected only after payment).
 - A paid call answered with an x402 PaymentRequired means verification refused the payment (no settlement) unless its `error` starts with `Payment settlement failed`, which is treated as ambiguous and handled by recovery.
+- The local caps cover the whole quote (up front + success fee): a purchase whose fee would exceed them is refused before anything is signed.
 - `already_settled` before payment, or any failure after a payment was authorized, leads to `lemma_recover_resolution`, never a second payment.
 
 The whole contract is exercised end to end by `npm run demo:fork`.

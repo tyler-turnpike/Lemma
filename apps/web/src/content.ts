@@ -101,6 +101,23 @@ export const howItWorks = {
   ],
 } as const;
 
+export const pricing = {
+  label: "Pricing",
+  headline: ["Priced by what it saves,", "paid when it works"],
+  lede: "Each quote is a quarter of the saving Lemma measured, scaled to your agent's model. A small up-front price is covered by the warranty; the rest is charged only after the release's tests pass in your repo.",
+  pick: "Your agent's model",
+  release: "x402-mcp-server@1.1.0",
+  rows: { saving: "Expected saving", upFront: "Up front", onSuccess: "On success", total: "Total if it works" },
+  notes: {
+    saving: "Measured on gpt-5.6-luna, scaled by list price",
+    upFront: "Refunded from the provider bond if it fails",
+    onSuccess: "Paid over x402 after the acceptance tests pass",
+    total: "25% of the saving, capped at 0.25 USDC;",
+    keep: "stays with you",
+  },
+  footnote: "The model is self-declared; unknown models are priced as the benchmark model. Prices in test USDC on Arbitrum Sepolia.",
+} as const;
+
 export const mock = {
   replay: "Replay",
   illustrative: "Illustrative",

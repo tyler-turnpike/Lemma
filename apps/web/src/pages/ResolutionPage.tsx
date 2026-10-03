@@ -159,7 +159,26 @@ function ResolutionDetail({ record, now }: { readonly record: ResolutionRecord; 
             <DataList
               rows={[
                 ["Transaction", <Hash value={summary.payment.txHash} href={arbiscanTx(summary.payment.txHash)} />],
-                ["Amount", formatUsdcAtomic(summary.payment.amountAtomic)],
+                ["Amount", `${formatUsdcAtomic(summary.payment.amountAtomic)} up front · warranty-covered`],
+                ...(summary.quote !== null && summary.quote.successFeeAtomic !== "0"
+                  ? ([
+                      [
+                        "Quote",
+                        `${formatUsdcAtomic(summary.quote.totalAtomic)} for ${summary.quote.model}: ${formatUsdcAtomic(summary.quote.floorAtomic)} up front + ${formatUsdcAtomic(summary.quote.successFeeAtomic)} on success`,
+                      ],
+                      [
+                        "Success fee",
+                        summary.successFee === null ? (
+                          <span className="text-muted">Not paid (owed only if the acceptance tests pass)</span>
+                        ) : (
+                          <span className="flex flex-col gap-1">
+                            <span>{formatUsdcAtomic(summary.successFee.amountAtomic)} paid after the tests passed</span>
+                            <Hash value={summary.successFee.txHash} href={arbiscanTx(summary.successFee.txHash)} />
+                          </span>
+                        ),
+                      ],
+                    ] as const)
+                  : []),
                 ["Payer", <Address value={summary.payment.payer} />],
                 ["Network", <span className="font-mono text-[0.8125rem]">{summary.payment.network}</span>],
                 ["Settled", formatDateTime(summary.payment.settledAt)],

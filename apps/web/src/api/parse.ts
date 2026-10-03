@@ -126,6 +126,9 @@ export function parseResolution(value: unknown): ResolutionSummary {
   const voucher = r.voucher === null || r.voucher === undefined ? null : obj(r.voucher, "voucher");
   const message = voucher === null ? null : obj(voucher.voucher, "voucher.voucher");
   const receipts = obj(r.receipts, "receipts");
+  // Absent on servers without per-request quotes.
+  const quote = r.quote === null || r.quote === undefined ? null : obj(r.quote, "quote");
+  const fee = r.successFee === null || r.successFee === undefined ? null : obj(r.successFee, "successFee");
   return {
     resolutionId: str(r.resolutionId, "resolutionId"),
     release: str(r.release, "release"),
@@ -169,6 +172,17 @@ export function parseResolution(value: unknown): ResolutionSummary {
       count: num(receipts.count, "receipts.count"),
       latestOutcome: receipts.latestOutcome === null || receipts.latestOutcome === undefined ? null : oneOf(receipts.latestOutcome, OUTCOMES, "receipts.latestOutcome"),
       latestAt: strOrNull(receipts.latestAt, "receipts.latestAt"),
+    },
+    quote: quote === null ? null : {
+      model: str(quote.model, "quote.model"),
+      floorAtomic: str(quote.floorAtomic, "quote.floorAtomic"),
+      successFeeAtomic: str(quote.successFeeAtomic, "quote.successFeeAtomic"),
+      totalAtomic: str(quote.totalAtomic, "quote.totalAtomic"),
+    },
+    successFee: fee === null ? null : {
+      txHash: str(fee.txHash, "successFee.txHash"),
+      amountAtomic: str(fee.amountAtomic, "successFee.amountAtomic"),
+      settledAt: str(fee.settledAt, "successFee.settledAt"),
     },
   };
 }

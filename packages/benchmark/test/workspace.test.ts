@@ -46,6 +46,8 @@ describe("workspaces", () => {
     writeFileSync(join(ws.dir, "vitest-cache", "ssr", "chunk.js"), "x");
     mkdirSync(join(ws.dir, "tmp-cache", "node-compile-cache"), { recursive: true });
     writeFileSync(join(ws.dir, "tmp-cache", "node-compile-cache", "v22"), "x");
+    mkdirSync(join(ws.dir, "node-compile-cache", "v22.22.0-x64"), { recursive: true });
+    writeFileSync(join(ws.dir, "node-compile-cache", "v22.22.0-x64", "000bc9cf"), "x");
     const diff = diffSnapshots(before, snapshot(ws.dir));
     expect(diff).toEqual({ added: ["src/new.ts"], modified: ["src/server.ts"], deleted: ["src/index.ts"], count: 3 });
   });

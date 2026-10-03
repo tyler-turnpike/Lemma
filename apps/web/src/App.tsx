@@ -7,6 +7,7 @@ import { Hero } from "./components/Hero.js";
 import { HowItWorks } from "./components/HowItWorks.js";
 import { LiveProof } from "./components/LiveProof.js";
 import { Nav } from "./components/Nav.js";
+import { Pricing } from "./components/Pricing.js";
 import { WhyArbitrum } from "./components/WhyArbitrum.js";
 import { NotFoundPage } from "./pages/NotFoundPage.js";
 import { matchRoute, usePathname, type Route } from "./router.js";
@@ -25,6 +26,7 @@ function Landing() {
       <Hero />
       <LiveProof />
       <HowItWorks />
+      <Pricing />
       <Guarantees />
       <WhyArbitrum />
       <ClosingCta />
